@@ -74,8 +74,8 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
     page.getByText("حدود بيانات العرض النموذجية · اعرف المزيد", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: /رابط تجريبي غير حكومي/ }).first(),
-  ).toHaveAttribute("href", "https://example.invalid/portfolio-demo");
+    page.getByRole("link", { name: "حول رابط العرض غير الحكومي" }).first(),
+  ).toHaveAttribute("href", "/ar/about#methodology");
   await expect(page.locator(".final-outcome")).toBeVisible();
 
   await page.getByRole("button", { name: "أجب الآن", exact: true }).first().click();
@@ -145,8 +145,8 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expect(page.getByRole("heading", { name: "Your business launch checklist" })).toBeVisible();
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(5);
   await expect(
-    page.getByRole("link", { name: /Non-government demo link/ }).first(),
-  ).toHaveAttribute("href", "https://example.invalid/portfolio-demo");
+    page.getByRole("link", { name: "About this non-government demo link" }).first(),
+  ).toHaveAttribute("href", "/en/about#methodology");
   expectRuntimeClean(faults);
 });
 

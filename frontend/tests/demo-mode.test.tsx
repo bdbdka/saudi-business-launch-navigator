@@ -59,8 +59,9 @@ describe("portfolio demo presentation boundary", () => {
       </CatalogPresentationProvider>,
     );
 
-    const link = screen.getByRole("link", { name: /Non-government demo link/ });
-    expect(link).toHaveAttribute("href", "https://example.invalid/portfolio-demo");
+    const link = screen.getByRole("link", { name: /About this non-government demo link/ });
+    expect(link).toHaveAttribute("href", "/en/about#methodology");
+    expect(link).not.toHaveAttribute("target");
     expect(link).toHaveAttribute("data-source-classification", "synthetic-demo");
     expect(screen.queryByText("Official source")).not.toBeInTheDocument();
   });

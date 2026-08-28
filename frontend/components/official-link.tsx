@@ -21,11 +21,23 @@ export function OfficialLink({
 }) {
   const { locale } = useCatalogPresentation();
   const isDemo = useIsPortfolioDemo();
+  if (isDemo) {
+    const demoLabel = locale === "ar"
+      ? "حول رابط العرض غير الحكومي"
+      : "About this non-government demo link";
+    return (
+      <a
+        className={prominent ? "official-service-link" : "official-source-link"}
+        href={`/${locale}/about#methodology`}
+        data-source-classification="synthetic-demo"
+      >
+        {demoLabel}
+      </a>
+    );
+  }
+
   const safeUrl = safeOfficialUrl(url);
   if (!safeUrl) return <span className="source-unavailable">{unavailableLabel}</span>;
-  const resolvedLabel = isDemo
-    ? (locale === "ar" ? "رابط تجريبي غير حكومي" : "Non-government demo link")
-    : label;
 
   return (
     <a
@@ -33,12 +45,10 @@ export function OfficialLink({
       href={safeUrl}
       target="_blank"
       rel="noopener noreferrer"
-      aria-label={`${resolvedLabel} (${opensNewWindow})`}
-      data-source-classification={
-        isDemo ? "synthetic-demo" : "governed"
-      }
+      aria-label={`${label} (${opensNewWindow})`}
+      data-source-classification="governed"
     >
-      {resolvedLabel}
+      {label}
       <ExternalLinkIcon />
     </a>
   );
