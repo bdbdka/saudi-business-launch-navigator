@@ -117,7 +117,11 @@ def test_blank_optional_openai_key_keeps_guided_mode_enabled_without_ai() -> Non
     assert settings.openai_api_key is None
 
 
-def test_production_rejects_implicit_local_defaults() -> None:
+def test_production_rejects_implicit_local_defaults(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("SBLN_DATABASE_URL", raising=False)
+
     with pytest.raises(ValidationError, match="database_url must be explicitly configured"):
         Settings(_env_file=None, environment="production", api_docs_enabled=False)
 
@@ -221,7 +225,12 @@ def test_production_rehearsal_rejects_ipv4_and_ipv6_wildcards(
         )
 
 
-def test_local_defaults_remain_available_outside_production() -> None:
+def test_local_defaults_remain_available_outside_production(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.delenv("SBLN_ENVIRONMENT", raising=False)
+    monkeypatch.delenv("SBLN_DATABASE_URL", raising=False)
+
     settings = Settings(_env_file=None)
 
     assert settings.environment == "local"
