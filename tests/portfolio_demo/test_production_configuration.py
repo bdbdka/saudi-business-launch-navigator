@@ -32,6 +32,42 @@ def test_production_accepts_only_explicit_hardened_configuration() -> None:
     assert settings.catalog_mode.value == "GOVERNED_REAL_CATALOG"
 
 
+@pytest.mark.parametrize(
+    ("origin_value", "host_value"),
+    [
+        ("https://sbln-portfolio-demo-web.onrender.com", "sbln-portfolio-demo-api.onrender.com"),
+        (
+            '["https://sbln-portfolio-demo-web.onrender.com"]',
+            '["sbln-portfolio-demo-api.onrender.com"]',
+        ),
+    ],
+)
+def test_render_service_reference_values_are_normalized_without_weakening_validation(
+    monkeypatch: pytest.MonkeyPatch,
+    origin_value: str,
+    host_value: str,
+) -> None:
+    monkeypatch.setenv("SBLN_ENVIRONMENT", "production")
+    monkeypatch.setenv("SBLN_API_DOCS_ENABLED", "false")
+    monkeypatch.setenv(
+        "SBLN_DATABASE_URL",
+        "postgresql+psycopg://runtime:secret@db.internal/navigator?sslmode=require",
+    )
+    monkeypatch.setenv("SBLN_CATALOG_MODE", "PORTFOLIO_DEMO_CATALOG")
+    monkeypatch.setenv(
+        "SBLN_EXPECTED_DATABASE_IDENTITY",
+        "143e0ec8-ff17-5955-8e89-aab9932a2577",
+    )
+    monkeypatch.setenv("SBLN_EXPECTED_DATABASE_NAME", "navigator_portfolio_demo")
+    monkeypatch.setenv("SBLN_CORS_ALLOWED_ORIGINS", origin_value)
+    monkeypatch.setenv("SBLN_ALLOWED_HOSTS", host_value)
+
+    settings = Settings(_env_file=None)
+
+    assert settings.cors_allowed_origins == ("https://sbln-portfolio-demo-web.onrender.com",)
+    assert settings.allowed_hosts == ("sbln-portfolio-demo-api.onrender.com",)
+
+
 def test_standard_managed_provider_url_is_forced_to_psycopg3_and_tls() -> None:
     settings = _production_settings(
         database_url="postgresql://runtime:secret@db.internal/navigator"

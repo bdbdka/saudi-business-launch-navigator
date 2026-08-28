@@ -1,14 +1,15 @@
 """Typed environment-based application configuration."""
 
 import ipaddress
+import json
 from enum import StrEnum
 from functools import lru_cache
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 from urllib.parse import parse_qs, urlsplit
 from uuid import UUID
 
 from pydantic import AliasChoices, Field, SecretStr, field_validator, model_validator
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 DEFAULT_LOCAL_DATABASE_URL = "postgresql+psycopg://navigator:navigator_dev@localhost:5432/navigator"
 
@@ -44,8 +45,12 @@ class Settings(BaseSettings):
     openai_max_output_tokens: int = Field(default=1200, ge=128, le=4096)
     api_max_natural_language_chars: int = Field(default=2000, ge=100, le=8000)
     api_max_request_bytes: int = Field(default=16_384, ge=1024, le=1_048_576)
-    cors_allowed_origins: tuple[str, ...] = ("http://localhost:3000",)
-    allowed_hosts: tuple[str, ...] = ("localhost", "127.0.0.1", "testserver")
+    cors_allowed_origins: Annotated[tuple[str, ...], NoDecode] = ("http://localhost:3000",)
+    allowed_hosts: Annotated[tuple[str, ...], NoDecode] = (
+        "localhost",
+        "127.0.0.1",
+        "testserver",
+    )
     api_docs_enabled: bool = True
     production_rehearsal: bool = False
     catalog_mode: CatalogDataMode = CatalogDataMode.GOVERNED_REAL_CATALOG
@@ -78,6 +83,24 @@ class Settings(BaseSettings):
         if raw is None or (isinstance(raw, str) and not raw.strip()):
             return None
         return value
+
+    @field_validator("cors_allowed_origins", "allowed_hosts", mode="before")
+    @classmethod
+    def normalize_exact_value_lists(cls, value: object) -> object:
+        """Accept a Render scalar reference or the existing JSON-list representation."""
+
+        if not isinstance(value, str):
+            return value
+        raw = value.strip()
+        if not raw.startswith("["):
+            return (raw,)
+        try:
+            decoded = json.loads(raw)
+        except json.JSONDecodeError as exc:
+            raise ValueError("exact value lists must contain valid JSON") from exc
+        if not isinstance(decoded, list) or any(not isinstance(item, str) for item in decoded):
+            raise ValueError("exact value lists must be a JSON array of strings")
+        return tuple(decoded)
 
     @field_validator("cors_allowed_origins")
     @classmethod

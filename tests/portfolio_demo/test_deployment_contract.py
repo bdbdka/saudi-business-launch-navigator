@@ -68,13 +68,18 @@ def test_portfolio_demo_compose_is_loopback_only_and_identity_bound() -> None:
     assert not re.search(r'(?m)^\s*-\s*"?(?:0\.0\.0\.0|\[::\]):', compose)
 
 
-def test_render_blueprint_requests_manual_free_evaluation_and_blocks_database_access() -> None:
+def test_render_blueprint_wires_exact_service_urls_and_blocks_database_access() -> None:
     blueprint = _read("render.yaml")
     parsed = yaml.safe_load(blueprint)
+    services = {service["name"]: service for service in parsed["services"]}
+    api_environment = {item["key"]: item for item in services["sbln-portfolio-demo-api"]["envVars"]}
+    web_environment = {item["key"]: item for item in services["sbln-portfolio-demo-web"]["envVars"]}
 
     assert blueprint.count("plan: free") == 3
     assert 'postgresMajorVersion: "18"' in blueprint
     assert "ipAllowList: []" in blueprint
+    assert parsed["databases"][0]["region"] == "frankfurt"
+    assert all(service["region"] == "frankfurt" for service in parsed["services"])
     assert blueprint.count('autoDeployTrigger: "off"') == 2
     assert "healthCheckPath: /health/ready" in blueprint
     assert "healthCheckPath: /ar" in blueprint
@@ -87,13 +92,43 @@ def test_render_blueprint_requests_manual_free_evaluation_and_blocks_database_ac
     assert "property: connectionString" in blueprint
     assert "NEXT_PUBLIC_API_BASE_URL" in blueprint
     assert "NEXT_PUBLIC_CATALOG_MODE" in blueprint
-    assert "sync: false" in blueprint
+    assert "sync: false" not in blueprint
     assert "OPENAI_API_KEY" not in blueprint
     assert "ALLOW_UNPUBLISHED" not in blueprint
     assert not re.search(r"postgresql(?:\+psycopg)?://[^\s]+:[^\s]+@", blueprint)
     assert len(parsed["databases"]) == 1
     assert [service["type"] for service in parsed["services"]] == ["web", "web"]
     assert all(service["autoDeployTrigger"] == "off" for service in parsed["services"])
+    assert api_environment["SBLN_CORS_ALLOWED_ORIGINS"] == {
+        "key": "SBLN_CORS_ALLOWED_ORIGINS",
+        "fromService": {
+            "type": "web",
+            "name": "sbln-portfolio-demo-web",
+            "envVarKey": "RENDER_EXTERNAL_URL",
+        },
+    }
+    assert api_environment["SBLN_ALLOWED_HOSTS"] == {
+        "key": "SBLN_ALLOWED_HOSTS",
+        "fromService": {
+            "type": "web",
+            "name": "sbln-portfolio-demo-api",
+            "envVarKey": "RENDER_EXTERNAL_HOSTNAME",
+        },
+    }
+    assert web_environment["NEXT_PUBLIC_API_BASE_URL"] == {
+        "key": "NEXT_PUBLIC_API_BASE_URL",
+        "fromService": {
+            "type": "web",
+            "name": "sbln-portfolio-demo-api",
+            "envVarKey": "RENDER_EXTERNAL_URL",
+        },
+    }
+    assert api_environment["SBLN_CATALOG_MODE"]["value"] == "PORTFOLIO_DEMO_CATALOG"
+    assert web_environment["NEXT_PUBLIC_CATALOG_MODE"]["value"] == "PORTFOLIO_DEMO_CATALOG"
+    assert api_environment["SBLN_EXPECTED_DATABASE_IDENTITY"]["value"] == (
+        "143e0ec8-ff17-5955-8e89-aab9932a2577"
+    )
+    assert api_environment["SBLN_EXPECTED_DATABASE_NAME"]["value"] == ("navigator_portfolio_demo")
 
 
 def test_production_environment_templates_are_secret_free_and_fail_closed() -> None:

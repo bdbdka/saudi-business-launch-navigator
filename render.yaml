@@ -1,5 +1,5 @@
 # Portfolio-demo provisioning blueprint using the bundled synthetic catalog.
-# Auto-deploy is disabled; set the browser and API origins before a first deployment.
+# Auto-deploy is disabled.
 databases:
   - name: sbln-portfolio-demo-db
     plan: free
@@ -42,9 +42,15 @@ services:
       - key: SBLN_API_DOCS_ENABLED
         value: "false"
       - key: SBLN_CORS_ALLOWED_ORIGINS
-        sync: false
+        fromService:
+          type: web
+          name: sbln-portfolio-demo-web
+          envVarKey: RENDER_EXTERNAL_URL
       - key: SBLN_ALLOWED_HOSTS
-        sync: false
+        fromService:
+          type: web
+          name: sbln-portfolio-demo-api
+          envVarKey: RENDER_EXTERNAL_HOSTNAME
       - key: SBLN_API_MAX_NATURAL_LANGUAGE_CHARS
         value: "2000"
       - key: SBLN_API_MAX_REQUEST_BYTES
@@ -62,6 +68,9 @@ services:
     autoDeployTrigger: "off"
     envVars:
       - key: NEXT_PUBLIC_API_BASE_URL
-        sync: false
+        fromService:
+          type: web
+          name: sbln-portfolio-demo-api
+          envVarKey: RENDER_EXTERNAL_URL
       - key: NEXT_PUBLIC_CATALOG_MODE
         value: PORTFOLIO_DEMO_CATALOG
