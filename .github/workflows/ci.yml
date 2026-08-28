@@ -1,0 +1,86 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: navigator
+          POSTGRES_USER: navigator
+          POSTGRES_PASSWORD: navigator_ci_only
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U navigator -d navigator"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+    env:
+      SBLN_ENVIRONMENT: ci
+      SBLN_LOG_LEVEL: INFO
+      SBLN_DATABASE_URL: postgresql+psycopg://navigator:navigator_ci_only@localhost:5432/navigator
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: astral-sh/setup-uv@94527f2e458b27549849d47d273a16bec83a01e9 # v7
+        with:
+          enable-cache: true
+          python-version: "3.13"
+      - run: uv sync --locked
+      - run: uv lock --check
+      - run: uv run pip-audit
+      - run: uv run ruff check .
+      - run: uv run ruff format --check .
+      - run: uv run mypy src tests
+      - run: uv run alembic upgrade 0005_coverage_actionability
+      - run: uv run alembic check
+      - run: uv run pytest -q
+
+  frontend:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      NEXT_PUBLIC_API_BASE_URL: https://api.example.invalid
+      NEXT_PUBLIC_CATALOG_MODE: PORTFOLIO_DEMO_CATALOG
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm audit
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+
+  containers:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - run: docker build --tag sbln-backend:ci .
+      - run: >-
+          docker build
+          --build-arg NEXT_PUBLIC_API_BASE_URL=https://api.example.invalid
+          --build-arg NEXT_PUBLIC_CATALOG_MODE=PORTFOLIO_DEMO_CATALOG
+          --tag sbln-frontend:ci
+          frontend

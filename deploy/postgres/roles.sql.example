@@ -1,0 +1,93 @@
+-- Production PostgreSQL role-policy template.
+--
+-- This file intentionally contains no login creation and no password. Create
+-- provider login principals in the managed secret/identity system, grant each
+-- principal exactly one NOLOGIN group role below, and rotate credentials there.
+-- Run this template as the managed database owner after setting database_name:
+--
+--   psql --set=database_name=navigator --file=deploy/postgres/roles.sql.example
+--
+-- Execute and verify this in a disposable restored database before production.
+
+\set ON_ERROR_STOP on
+
+\if :{?database_name}
+\else
+  \echo 'database_name is required'
+  \quit
+\endif
+
+BEGIN;
+
+DO $roles$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'navigator_migration') THEN
+        CREATE ROLE navigator_migration
+            NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+    END IF;
+
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'navigator_runtime') THEN
+        CREATE ROLE navigator_runtime
+            NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+    END IF;
+END
+$roles$;
+
+ALTER ROLE navigator_migration
+    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+ALTER ROLE navigator_runtime
+    NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION;
+
+REVOKE ALL PRIVILEGES ON DATABASE :"database_name" FROM PUBLIC;
+GRANT CONNECT, TEMPORARY ON DATABASE :"database_name" TO navigator_migration;
+GRANT CONNECT ON DATABASE :"database_name" TO navigator_runtime;
+
+REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON SCHEMA navigator FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA navigator FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA navigator FROM PUBLIC;
+REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA navigator FROM PUBLIC;
+
+GRANT USAGE, CREATE ON SCHEMA navigator TO navigator_migration;
+GRANT ALL PRIVILEGES ON ALL TABLES IN SCHEMA navigator TO navigator_migration;
+GRANT ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA navigator TO navigator_migration;
+GRANT ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA navigator TO navigator_migration;
+
+-- The public runtime stays catalog-blind while every governed release count is
+-- zero. Read grants require a separate, reviewed publication/release change.
+REVOKE ALL PRIVILEGES ON SCHEMA navigator FROM navigator_runtime;
+REVOKE ALL PRIVILEGES ON ALL TABLES IN SCHEMA navigator FROM navigator_runtime;
+REVOKE CREATE ON SCHEMA navigator FROM navigator_runtime;
+REVOKE INSERT, UPDATE, DELETE, TRUNCATE, REFERENCES, TRIGGER
+    ON ALL TABLES IN SCHEMA navigator FROM navigator_runtime;
+REVOKE ALL PRIVILEGES ON ALL SEQUENCES IN SCHEMA navigator FROM navigator_runtime;
+REVOKE ALL PRIVILEGES ON ALL FUNCTIONS IN SCHEMA navigator FROM navigator_runtime;
+
+ALTER DEFAULT PRIVILEGES FOR ROLE navigator_migration IN SCHEMA navigator
+    REVOKE ALL PRIVILEGES ON TABLES FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE navigator_migration IN SCHEMA navigator
+    REVOKE ALL PRIVILEGES ON SEQUENCES FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE navigator_migration IN SCHEMA navigator
+    REVOKE ALL PRIVILEGES ON FUNCTIONS FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES FOR ROLE navigator_migration IN SCHEMA navigator
+    REVOKE ALL PRIVILEGES ON TABLES FROM navigator_runtime;
+
+ALTER ROLE navigator_runtime SET default_transaction_read_only = on;
+ALTER ROLE navigator_runtime SET statement_timeout = '15s';
+ALTER ROLE navigator_runtime SET lock_timeout = '3s';
+ALTER ROLE navigator_migration SET statement_timeout = '5min';
+ALTER ROLE navigator_migration SET lock_timeout = '10s';
+
+COMMIT;
+
+-- Verification (read only):
+SELECT rolname, rolsuper, rolcreaterole, rolcreatedb, rolcanlogin
+FROM pg_roles
+WHERE rolname IN ('navigator_migration', 'navigator_runtime')
+ORDER BY rolname;
+
+SELECT grantee, privilege_type
+FROM information_schema.role_table_grants
+WHERE table_schema = 'navigator'
+  AND grantee IN ('navigator_migration', 'navigator_runtime')
+ORDER BY grantee, privilege_type;

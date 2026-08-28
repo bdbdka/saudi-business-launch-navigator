@@ -1,0 +1,67 @@
+# Portfolio-demo provisioning blueprint using the bundled synthetic catalog.
+# Auto-deploy is disabled; set the browser and API origins before a first deployment.
+databases:
+  - name: sbln-portfolio-demo-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "18"
+    databaseName: navigator_portfolio_demo
+    user: navigator_demo
+    ipAllowList: []
+
+services:
+  - type: web
+    name: sbln-portfolio-demo-api
+    runtime: docker
+    plan: free
+    region: frankfurt
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    dockerCommand: python -m saudi_business_launch_navigator.portfolio_demo.run_server
+    healthCheckPath: /health/ready
+    autoDeployTrigger: "off"
+    envVars:
+      - key: SBLN_ENVIRONMENT
+        value: production
+      - key: SBLN_PRODUCTION_REHEARSAL
+        value: "false"
+      - key: SBLN_LOG_LEVEL
+        value: INFO
+      - key: SBLN_DATABASE_URL
+        fromDatabase:
+          name: sbln-portfolio-demo-db
+          property: connectionString
+      - key: SBLN_CATALOG_MODE
+        value: PORTFOLIO_DEMO_CATALOG
+      - key: SBLN_EXPECTED_DATABASE_IDENTITY
+        value: 143e0ec8-ff17-5955-8e89-aab9932a2577
+      - key: SBLN_EXPECTED_DATABASE_NAME
+        value: navigator_portfolio_demo
+      - key: SBLN_DEMO_RUNTIME_DATABASE_PASSWORD
+        generateValue: true
+      - key: SBLN_API_DOCS_ENABLED
+        value: "false"
+      - key: SBLN_CORS_ALLOWED_ORIGINS
+        sync: false
+      - key: SBLN_ALLOWED_HOSTS
+        sync: false
+      - key: SBLN_API_MAX_NATURAL_LANGUAGE_CHARS
+        value: "2000"
+      - key: SBLN_API_MAX_REQUEST_BYTES
+        value: "16384"
+
+  - type: web
+    name: sbln-portfolio-demo-web
+    runtime: docker
+    plan: free
+    region: frankfurt
+    rootDir: frontend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /ar
+    autoDeployTrigger: "off"
+    envVars:
+      - key: NEXT_PUBLIC_API_BASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_CATALOG_MODE
+        value: PORTFOLIO_DEMO_CATALOG

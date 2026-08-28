@@ -1,0 +1,162 @@
+{
+  "schema_version": 1,
+  "dataset_code": "portfolio_demo_v1",
+  "dataset_revision": 1,
+  "database_identity": "143e0ec8-ff17-5955-8e89-aab9932a2577",
+  "classification": "PORTFOLIO_DEMO_CATALOG",
+  "warning_ar": "نسخة تجريبية لأغراض العرض التقني. تستخدم هذه النسخة بيانات نموذجية ولا ينبغي الاعتماد عليها لاتخاذ قرار تنظيمي فعلي.",
+  "warning_en": "Portfolio demonstration. This version uses sample data and should not be relied on for real regulatory decisions.",
+  "activities": [
+    {"code": "coffee_shop", "name_ar": "مقهى", "name_en": "Coffee shop"},
+    {"code": "restaurant", "name_ar": "مطعم", "name_en": "Restaurant"},
+    {"code": "cloud_kitchen", "name_ar": "مطبخ سحابي", "name_en": "Cloud kitchen"}
+  ],
+  "authority": {
+    "code": "demo_non_government_authority",
+    "name_ar": "جهة نموذجية غير حكومية",
+    "name_en": "Fictional non-government demo authority"
+  },
+  "source": {
+    "code": "demo_sample_source",
+    "title_ar": "صفحة نموذجية غير حكومية لأغراض العرض",
+    "title_en": "Non-government sample page for demonstration",
+    "url": "https://example.invalid/portfolio-demo"
+  },
+  "facts": [
+    {
+      "code": "ownership_investor_route",
+      "data_type": "enum",
+      "allowed_values": [
+        "saudi_person_or_saudi_owned_entity",
+        "gcc_person_or_wholly_gcc_owned_entity",
+        "foreign_legal_entity_or_mixed_foreign_ownership",
+        "premium_residency_individual",
+        "other"
+      ],
+      "purpose": "NAVIGATION"
+    },
+    {
+      "code": "planned_legal_form",
+      "data_type": "enum",
+      "allowed_values": ["individual_establishment", "limited_liability_company", "other"],
+      "purpose": "NAVIGATION"
+    },
+    {
+      "code": "has_selected_business_premises",
+      "data_type": "boolean",
+      "allowed_values": null,
+      "purpose": "NAVIGATION"
+    },
+    {
+      "code": "has_employees",
+      "data_type": "boolean",
+      "allowed_values": null,
+      "purpose": "APPLICABILITY"
+    },
+    {
+      "code": "has_food_establishment_workers",
+      "data_type": "boolean",
+      "allowed_values": null,
+      "purpose": "APPLICABILITY"
+    },
+    {
+      "code": "offers_home_delivery",
+      "data_type": "boolean",
+      "allowed_values": null,
+      "purpose": "APPLICABILITY"
+    },
+    {
+      "code": "zatca_confirmed_mandatory_vat_registration_applies",
+      "data_type": "boolean",
+      "allowed_values": null,
+      "purpose": "APPLICABILITY"
+    },
+    {
+      "code": "uses_public_sidewalk_for_customer_service",
+      "data_type": "boolean",
+      "allowed_values": null,
+      "purpose": "APPLICABILITY"
+    }
+  ],
+  "requirements": [
+    {
+      "code": "demo_launch_orientation",
+      "title_ar": "مهمة تجريبية: راجع مسار بدء المشروع",
+      "description_ar": "عنصر نموذجي يوضح كيف يعرض الدليل مهمة مشتركة دون ادعاء أنها متطلب تنظيمي حقيقي.",
+      "title_en": "Demo task: review the business-start route",
+      "description_en": "A sample item showing how the Navigator presents a shared task without claiming it is a real regulatory requirement.",
+      "activities": ["coffee_shop", "restaurant", "cloud_kitchen"],
+      "condition_fact": null
+    },
+    {
+      "code": "demo_worker_readiness",
+      "title_ar": "مهمة تجريبية: جهّز مسار العاملين في منشأة الطعام",
+      "description_ar": "عنصر نموذجي يظهر عندما يجيب المستخدم بأن عاملين سيعملون داخل المنشأة.",
+      "title_en": "Demo task: prepare the food-worker route",
+      "description_en": "A sample item shown when the user says workers will operate inside the establishment.",
+      "activities": ["coffee_shop", "restaurant", "cloud_kitchen"],
+      "condition_fact": "has_food_establishment_workers"
+    },
+    {
+      "code": "demo_vat_confirmation",
+      "title_ar": "مهمة تجريبية: سجّل نتيجة التحقق من مسار الضريبة",
+      "description_ar": "عنصر نموذجي يظهر فقط بعد أن يؤكد المستخدم نتيجة تحقق افتراضية؛ لا يحسب الدليل أي حد ضريبي.",
+      "title_en": "Demo task: record the tax-route confirmation",
+      "description_en": "A sample item shown only after a fictional confirmation; the Navigator calculates no tax threshold.",
+      "activities": ["coffee_shop", "restaurant", "cloud_kitchen"],
+      "condition_fact": "zatca_confirmed_mandatory_vat_registration_applies"
+    },
+    {
+      "code": "demo_employment_setup",
+      "title_ar": "مهمة تجريبية: راجع مسار إعداد الموظفين",
+      "description_ar": "عنصر نموذجي يوضح كيف يغير جواب وجود موظفين نتيجة القائمة.",
+      "title_en": "Demo task: review the employee setup route",
+      "description_en": "A sample item demonstrating how an employee answer changes the checklist.",
+      "activities": ["coffee_shop", "restaurant", "cloud_kitchen"],
+      "condition_fact": "has_employees"
+    },
+    {
+      "code": "demo_delivery_setup",
+      "title_ar": "مهمة تجريبية: راجع مسار خدمة التوصيل",
+      "description_ar": "عنصر نموذجي يظهر عندما يختار المستخدم تقديم التوصيل المنزلي.",
+      "title_en": "Demo task: review the delivery-service route",
+      "description_en": "A sample item shown when the user chooses to offer home delivery.",
+      "activities": ["coffee_shop", "restaurant", "cloud_kitchen"],
+      "condition_fact": "offers_home_delivery"
+    },
+    {
+      "code": "demo_sidewalk_setup",
+      "title_ar": "مهمة تجريبية: راجع استخدام مساحة الرصيف",
+      "description_ar": "عنصر نموذجي خاص بتجربة المطعم يظهر عند اختيار استخدام الرصيف العام لخدمة العملاء.",
+      "title_en": "Demo task: review sidewalk-space use",
+      "description_en": "A restaurant-only sample item shown when public sidewalk use is selected.",
+      "activities": ["restaurant"],
+      "condition_fact": "uses_public_sidewalk_for_customer_service"
+    }
+  ],
+  "journey_topics": [
+    {"code": "ownership_investment_route", "navigation_fact": "ownership_investor_route"},
+    {"code": "business_registration_route", "navigation_fact": "planned_legal_form"},
+    {"code": "site_activity_verification", "navigation_fact": "has_selected_business_premises"},
+    {"code": "vat_registration_navigation", "navigation_fact": null},
+    {"code": "e_invoicing_confirmation", "navigation_fact": null},
+    {"code": "zakat_registration_confirmation", "navigation_fact": null}
+  ],
+  "actionability": [
+    {
+      "code": "demo_start_here",
+      "detail_type": "official_start",
+      "value": {"kind": "official_destination", "label_ar": "افتح الرابط التجريبي", "label_en": "Open demo link"}
+    },
+    {
+      "code": "demo_sample_document",
+      "detail_type": "document",
+      "value": {"kind": "text", "text_ar": "جهّز مثالاً خيالياً لبيانات المشروع دون أي معلومات شخصية.", "text_en": "Prepare a fictional business example without personal information."}
+    },
+    {
+      "code": "demo_sample_sequence",
+      "detail_type": "sequence",
+      "value": {"kind": "text", "text_ar": "راجع الإجابات ثم افتح الرابط النموذجي للتحقق من تجربة التنقل.", "text_en": "Review the answers, then open the sample link to verify the navigation experience."}
+    }
+  ]
+}

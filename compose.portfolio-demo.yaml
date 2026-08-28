@@ -1,0 +1,148 @@
+name: sbln-public-portfolio-demo
+
+x-demo-common-environment: &demo-common-environment
+  SBLN_ENVIRONMENT: production
+  SBLN_PRODUCTION_REHEARSAL: "true"
+  SBLN_LOG_LEVEL: INFO
+  SBLN_CATALOG_MODE: PORTFOLIO_DEMO_CATALOG
+  SBLN_EXPECTED_DATABASE_IDENTITY: 143e0ec8-ff17-5955-8e89-aab9932a2577
+  SBLN_EXPECTED_DATABASE_NAME: navigator_portfolio_demo
+  SBLN_API_DOCS_ENABLED: "false"
+  SBLN_CORS_ALLOWED_ORIGINS: '["http://127.0.0.1:${SBLN_DEMO_WEB_PORT:-13002}"]'
+  SBLN_ALLOWED_HOSTS: '["127.0.0.1","localhost"]'
+  SBLN_API_MAX_NATURAL_LANGUAGE_CHARS: "2000"
+  SBLN_API_MAX_REQUEST_BYTES: "16384"
+
+x-demo-backend-image: &demo-backend-image
+  image: sbln-public-portfolio-demo-backend:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+
+x-demo-restricted-container: &demo-restricted-container
+  security_opt:
+    - no-new-privileges:true
+  cap_drop:
+    - ALL
+
+services:
+  database:
+    image: postgres:18
+    environment:
+      POSTGRES_DB: navigator_portfolio_demo
+      POSTGRES_USER: navigator_demo
+      POSTGRES_PASSWORD: >-
+        ${SBLN_DEMO_DATABASE_PASSWORD:?set SBLN_DEMO_DATABASE_PASSWORD outside Git}
+    ports:
+      - "127.0.0.1:${SBLN_DEMO_DATABASE_PORT:-55434}:5432"
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - pg_isready -U "$${POSTGRES_USER}" -d "$${POSTGRES_DB}"
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 10s
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    volumes:
+      - portfolio_demo_postgres_data:/var/lib/postgresql
+    networks:
+      - backend_database
+
+  initialize:
+    <<: [*demo-backend-image, *demo-restricted-container]
+    command:
+      - python
+      - -m
+      - saudi_business_launch_navigator.portfolio_demo.initialize
+    environment:
+      <<: *demo-common-environment
+      SBLN_DATABASE_URL: >-
+        postgresql+psycopg://navigator_demo:${SBLN_DEMO_DATABASE_PASSWORD:?set SBLN_DEMO_DATABASE_PASSWORD outside Git}@database:5432/navigator_portfolio_demo
+      SBLN_DEMO_RUNTIME_DATABASE_PASSWORD: >-
+        ${SBLN_DEMO_RUNTIME_DATABASE_PASSWORD:?set SBLN_DEMO_RUNTIME_DATABASE_PASSWORD outside Git}
+    depends_on:
+      database:
+        condition: service_healthy
+    restart: "no"
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - backend_database
+
+  backend:
+    <<: [*demo-backend-image, *demo-restricted-container]
+    environment:
+      <<: *demo-common-environment
+      SBLN_DATABASE_URL: >-
+        postgresql+psycopg://navigator_demo_runtime:${SBLN_DEMO_RUNTIME_DATABASE_PASSWORD:?set SBLN_DEMO_RUNTIME_DATABASE_PASSWORD outside Git}@database:5432/navigator_portfolio_demo
+      OPENAI_API_KEY: "${OPENAI_API_KEY:-}"
+    depends_on:
+      initialize:
+        condition: service_completed_successfully
+    ports:
+      - "127.0.0.1:${SBLN_DEMO_API_PORT:-18002}:8000"
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - >-
+          import urllib.request;
+          urllib.request.urlopen('http://127.0.0.1:8000/health/ready', timeout=2).read()
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - backend_database
+      - frontend_backend
+
+  frontend:
+    <<: *demo-restricted-container
+    image: sbln-public-portfolio-demo-frontend:local
+    build:
+      context: frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:${SBLN_DEMO_API_PORT:-18002}
+        NEXT_PUBLIC_CATALOG_MODE: PORTFOLIO_DEMO_CATALOG
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:${SBLN_DEMO_WEB_PORT:-13002}:3000"
+    healthcheck:
+      test:
+        - CMD
+        - node
+        - -e
+        - >-
+          fetch('http://127.0.0.1:3000/ar').then((response) => {
+          if (!response.ok) process.exit(1); }).catch(() => process.exit(1));
+      interval: 10s
+      timeout: 3s
+      retries: 12
+      start_period: 15s
+    restart: unless-stopped
+    read_only: true
+    tmpfs:
+      - /tmp
+    networks:
+      - frontend_backend
+
+volumes:
+  portfolio_demo_postgres_data:
+    labels:
+      com.sbln.data-classification: synthetic-portfolio-demo-only
+
+networks:
+  backend_database:
+  frontend_backend:
