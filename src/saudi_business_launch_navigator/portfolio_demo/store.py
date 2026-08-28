@@ -647,29 +647,7 @@ async def provision_portfolio_demo_runtime_role(
     async with engine.begin() as connection:
         await connection.execute(text("SET LOCAL lock_timeout = '5s'"))
         await connection.execute(text("SET LOCAL statement_timeout = '30s'"))
-        await connection.execute(
-            text(
-                "DO $$ BEGIN IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles "
-                "WHERE rolname = 'navigator_demo_runtime') THEN "
-                "CREATE ROLE navigator_demo_runtime LOGIN; END IF; END $$"
-            )
-        )
-        await connection.execute(
-            text(
-                "DO $membership$ DECLARE inherited_role text; BEGIN "
-                "FOR inherited_role IN "
-                "SELECT parent.rolname FROM pg_catalog.pg_auth_members membership "
-                "JOIN pg_catalog.pg_roles parent ON parent.oid = membership.roleid "
-                "JOIN pg_catalog.pg_roles member ON member.oid = membership.member "
-                "WHERE member.rolname = 'navigator_demo_runtime' LOOP "
-                "EXECUTE format('REVOKE %I FROM navigator_demo_runtime', inherited_role); "
-                "END LOOP; END $membership$"
-            )
-        )
-        await connection.exec_driver_sql(
-            f"ALTER ROLE {PORTFOLIO_DEMO_RUNTIME_ROLE} WITH LOGIN NOSUPERUSER NOCREATEDB "
-            "NOCREATEROLE NOINHERIT NOREPLICATION NOBYPASSRLS"
-        )
+        await _ensure_portfolio_demo_runtime_role(connection)
         await _rotate_portfolio_demo_runtime_password(connection, password)
         await connection.exec_driver_sql(
             f"REVOKE CONNECT, TEMPORARY ON DATABASE {quoted_database} FROM PUBLIC"
@@ -726,6 +704,90 @@ async def provision_portfolio_demo_runtime_role(
             text("ALTER ROLE navigator_demo_runtime SET statement_timeout = '10s'")
         )
         await connection.execute(text("ALTER ROLE navigator_demo_runtime SET lock_timeout = '2s'"))
+        await _assert_portfolio_demo_runtime_role_invariants(connection)
+
+
+async def _ensure_portfolio_demo_runtime_role(connection: AsyncConnection) -> None:
+    """Create or reconcile the runtime role without mutating protected attributes."""
+
+    bootstrap_role = (
+        await connection.execute(
+            text("SELECT rolcreaterole FROM pg_catalog.pg_roles WHERE rolname = current_user")
+        )
+    ).one_or_none()
+    if bootstrap_role is None or not bootstrap_role.rolcreaterole:
+        raise PortfolioDemoDatabaseError(
+            "portfolio demo database owner requires CREATEROLE to provision the runtime role"
+        )
+
+    try:
+        role_exists = (
+            await connection.execute(
+                text(
+                    "SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_roles "
+                    "WHERE rolname = 'navigator_demo_runtime')"
+                )
+            )
+        ).scalar_one()
+        if role_exists:
+            await connection.exec_driver_sql(
+                f"ALTER ROLE {PORTFOLIO_DEMO_RUNTIME_ROLE} WITH LOGIN NOINHERIT"
+            )
+        else:
+            await connection.exec_driver_sql(
+                f"CREATE ROLE {PORTFOLIO_DEMO_RUNTIME_ROLE} WITH LOGIN NOINHERIT"
+            )
+        await connection.execute(
+            text(
+                "DO $membership$ DECLARE inherited_role text; BEGIN "
+                "FOR inherited_role IN "
+                "SELECT parent.rolname FROM pg_catalog.pg_auth_members membership "
+                "JOIN pg_catalog.pg_roles parent ON parent.oid = membership.roleid "
+                "JOIN pg_catalog.pg_roles member ON member.oid = membership.member "
+                "WHERE member.rolname = 'navigator_demo_runtime' LOOP "
+                "EXECUTE format('REVOKE %I FROM navigator_demo_runtime', inherited_role); "
+                "END LOOP; END $membership$"
+            )
+        )
+    except PortfolioDemoDatabaseError:
+        raise
+    except Exception:
+        raise PortfolioDemoDatabaseError(
+            "portfolio demo database owner cannot manage the runtime role"
+        ) from None
+
+
+async def _assert_portfolio_demo_runtime_role_invariants(
+    connection: AsyncConnection | AsyncSession,
+) -> None:
+    """Verify provider-protected role attributes without trying to mutate them."""
+
+    role = (
+        await connection.execute(
+            text(
+                "SELECT rolcanlogin, rolinherit, rolsuper, rolcreaterole, rolcreatedb, "
+                "rolreplication, rolbypassrls, "
+                "(SELECT count(*) FROM pg_catalog.pg_auth_members membership "
+                "WHERE membership.member = runtime_role.oid) AS membership_count "
+                "FROM pg_catalog.pg_roles runtime_role "
+                "WHERE runtime_role.rolname = 'navigator_demo_runtime'"
+            )
+        )
+    ).one_or_none()
+    if role is None:
+        raise PortfolioDemoDatabaseError("portfolio demo runtime role is unavailable")
+    if (
+        role.rolsuper
+        or role.rolcreaterole
+        or role.rolcreatedb
+        or role.rolreplication
+        or role.rolbypassrls
+    ):
+        raise PortfolioDemoDatabaseError(
+            "portfolio demo runtime role has unexpected elevated privileges"
+        )
+    if not role.rolcanlogin or role.rolinherit or role.membership_count != 0:
+        raise PortfolioDemoDatabaseError("portfolio demo runtime role invariants differ")
 
 
 async def assert_portfolio_demo_runtime_access(engine: AsyncEngine) -> None:
@@ -739,19 +801,7 @@ async def assert_portfolio_demo_runtime_access(engine: AsyncEngine) -> None:
         setting = (await session.execute(text("SHOW default_transaction_read_only"))).scalar_one()
         if setting != "on":
             raise PortfolioDemoDatabaseError("portfolio demo runtime is not read-only by default")
-        role_is_restricted = (
-            await session.execute(
-                text(
-                    "SELECT rolcanlogin AND NOT rolsuper AND NOT rolinherit "
-                    "AND NOT rolcreaterole AND NOT rolcreatedb AND NOT rolreplication "
-                    "AND NOT rolbypassrls "
-                    "AND NOT EXISTS ("
-                    "SELECT 1 FROM pg_catalog.pg_auth_members membership "
-                    "WHERE membership.member = role.oid) "
-                    "FROM pg_catalog.pg_roles role WHERE rolname = current_user"
-                )
-            )
-        ).scalar_one()
+        await _assert_portfolio_demo_runtime_role_invariants(session)
         forbidden_grants = await _runtime_navigator_privilege_count(session)
         relation_privilege_violations = await _runtime_relation_privilege_violation_count(session)
         forbidden_functions = await _runtime_unapproved_function_privilege_count(session)
@@ -776,8 +826,7 @@ async def assert_portfolio_demo_runtime_access(engine: AsyncEngine) -> None:
             )
         ).scalar_one()
         if (
-            not role_is_restricted
-            or forbidden_grants != 0
+            forbidden_grants != 0
             or relation_privilege_violations != 0
             or forbidden_functions != 0
             or not allowed

@@ -52,6 +52,7 @@ from saudi_business_launch_navigator.portfolio_demo.store import (
 pytestmark = pytest.mark.integration
 ROOT = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
 RUNTIME_PASSWORD = "portfolio_demo_runtime_test_password_only"
+RESTRICTED_OWNER_PASSWORD = "portfolio_demo_restricted_owner_password"
 
 
 def _connect(
@@ -138,6 +139,136 @@ def _demo_settings(database_url: str, *, production: bool = False) -> Settings:
         cors_allowed_origins=("http://127.0.0.1:13001",),
         allowed_hosts=("testserver", "127.0.0.1", "localhost"),
     )
+
+
+def _create_restricted_owner_database(*, can_create_roles: bool) -> tuple[str, str, str]:
+    _drop_runtime_role()
+    base = make_url(Settings(_env_file=None).database_url.get_secret_value())
+    name = f"navigator_portfolio_demo_test_{uuid.uuid4().hex[:12]}"
+    owner = f"navigator_demo_owner_{uuid.uuid4().hex[:12]}"
+    role_capability = sql.SQL(" CREATEROLE") if can_create_roles else sql.SQL("")
+    with _connect(base, "postgres") as admin:
+        admin.execute(
+            sql.SQL("CREATE ROLE {} LOGIN{} PASSWORD {}").format(
+                sql.Identifier(owner),
+                role_capability,
+                sql.Literal(RESTRICTED_OWNER_PASSWORD),
+            )
+        )
+        admin.execute(
+            sql.SQL("CREATE DATABASE {} OWNER {}").format(
+                sql.Identifier(name),
+                sql.Identifier(owner),
+            )
+        )
+    database_url = base.set(
+        username=owner,
+        password=RESTRICTED_OWNER_PASSWORD,
+        database=name,
+    ).render_as_string(hide_password=False)
+    return name, owner, database_url
+
+
+def _drop_restricted_owner_database(name: str, owner: str) -> None:
+    _drop_database(name)
+    base = make_url(Settings(_env_file=None).database_url.get_secret_value())
+    with _connect(base, "postgres") as admin:
+        admin.execute("DROP ROLE IF EXISTS navigator_demo_runtime")
+        admin.execute(sql.SQL("DROP ROLE IF EXISTS {}").format(sql.Identifier(owner)))
+
+
+def test_runtime_role_provisioning_works_for_a_non_superuser_database_owner() -> None:
+    name, owner, database_url = _create_restricted_owner_database(can_create_roles=True)
+    try:
+        _upgrade(database_url)
+
+        async def exercise_managed_postgres_boundary() -> None:
+            settings = _demo_settings(database_url)
+            engine = create_database_engine(settings)
+            try:
+                async with engine.connect() as connection:
+                    bootstrap_state = (
+                        await connection.execute(
+                            text(
+                                "SELECT current_user, rolsuper, rolcreaterole, rolcreatedb, "
+                                "rolreplication, rolbypassrls FROM pg_catalog.pg_roles "
+                                "WHERE rolname = current_user"
+                            )
+                        )
+                    ).one()
+                assert tuple(bootstrap_state) == (owner, False, True, False, False, False)
+
+                await seed_portfolio_demo_database(engine, settings)
+                await provision_portfolio_demo_runtime_role(engine, settings, RUNTIME_PASSWORD)
+                await provision_portfolio_demo_runtime_role(engine, settings, RUNTIME_PASSWORD)
+            finally:
+                await dispose_database_engine(engine)
+
+            runtime_url = portfolio_demo_runtime_database_url(database_url, RUNTIME_PASSWORD)
+            runtime_settings = _demo_settings(runtime_url, production=True)
+            runtime_engine = create_database_engine(runtime_settings)
+            try:
+                await assert_portfolio_demo_runtime_access(runtime_engine)
+                await verify_portfolio_demo_database(runtime_engine, runtime_settings)
+                async with runtime_engine.connect() as connection:
+                    assert (
+                        await connection.execute(
+                            text("SELECT count(*) FROM portfolio_demo.catalog_identity")
+                        )
+                    ).scalar_one() == 1
+                with pytest.raises(DBAPIError):
+                    async with runtime_engine.begin() as connection:
+                        await connection.execute(text("CREATE SCHEMA forbidden_runtime_schema"))
+                with pytest.raises(DBAPIError):
+                    async with runtime_engine.begin() as connection:
+                        await connection.execute(
+                            text("UPDATE portfolio_demo.catalog_identity SET dataset_revision = 2")
+                        )
+            finally:
+                await dispose_database_engine(runtime_engine)
+
+            runtime_connection_url = make_url(runtime_url)
+            with (
+                _connect(runtime_connection_url, name) as runtime_connection,
+                pytest.raises(psycopg.errors.InsufficientPrivilege),
+            ):
+                runtime_connection.execute("SET default_transaction_read_only = off")
+                runtime_connection.execute(
+                    sql.SQL("CREATE DATABASE {}").format(
+                        sql.Identifier(f"forbidden_{uuid.uuid4().hex[:12]}")
+                    )
+                )
+
+        asyncio.run(exercise_managed_postgres_boundary())
+    finally:
+        _drop_restricted_owner_database(name, owner)
+
+
+def test_runtime_role_provisioning_requires_createrole() -> None:
+    name, owner, database_url = _create_restricted_owner_database(can_create_roles=False)
+    try:
+        _upgrade(database_url)
+
+        async def exercise_missing_capability() -> None:
+            settings = _demo_settings(database_url)
+            engine = create_database_engine(settings)
+            try:
+                await seed_portfolio_demo_database(engine, settings)
+                with pytest.raises(
+                    PortfolioDemoDatabaseError,
+                    match="database owner requires CREATEROLE",
+                ):
+                    await provision_portfolio_demo_runtime_role(
+                        engine,
+                        settings,
+                        RUNTIME_PASSWORD,
+                    )
+            finally:
+                await dispose_database_engine(engine)
+
+        asyncio.run(exercise_missing_capability())
+    finally:
+        _drop_restricted_owner_database(name, owner)
 
 
 @pytest.fixture(scope="module")
@@ -686,9 +817,7 @@ def test_runtime_role_is_normalized_and_detects_later_governed_contamination() -
                 await provision_portfolio_demo_runtime_role(engine, settings, RUNTIME_PASSWORD)
                 async with engine.begin() as connection:
                     await connection.exec_driver_sql(f"CREATE ROLE {inherited_role} NOLOGIN")
-                    await connection.execute(
-                        text("ALTER ROLE navigator_demo_runtime CREATEROLE INHERIT")
-                    )
+                    await connection.execute(text("ALTER ROLE navigator_demo_runtime INHERIT"))
                     await connection.exec_driver_sql(
                         f"GRANT {inherited_role} TO navigator_demo_runtime"
                     )
@@ -758,6 +887,50 @@ def test_runtime_role_is_normalized_and_detects_later_governed_contamination() -
         base = make_url(Settings(_env_file=None).database_url.get_secret_value())
         with _connect(base, "postgres") as admin:
             admin.execute(sql.SQL("DROP ROLE IF EXISTS {}").format(sql.Identifier(inherited_role)))
+        _drop_database(name)
+
+
+def test_runtime_role_with_elevated_attributes_fails_closed() -> None:
+    name, database_url = _create_database()
+    try:
+        _upgrade(database_url)
+
+        async def exercise_elevated_role_rejection() -> None:
+            settings = _demo_settings(database_url)
+            engine = create_database_engine(settings)
+            try:
+                await seed_portfolio_demo_database(engine, settings)
+                await provision_portfolio_demo_runtime_role(engine, settings, RUNTIME_PASSWORD)
+                async with engine.begin() as connection:
+                    await connection.execute(text("ALTER ROLE navigator_demo_runtime CREATEROLE"))
+                with pytest.raises(
+                    PortfolioDemoDatabaseError,
+                    match="runtime role has unexpected elevated privileges",
+                ):
+                    await provision_portfolio_demo_runtime_role(
+                        engine,
+                        settings,
+                        RUNTIME_PASSWORD,
+                    )
+                async with engine.connect() as connection:
+                    remains_elevated = (
+                        await connection.execute(
+                            text(
+                                "SELECT rolcreaterole FROM pg_catalog.pg_roles "
+                                "WHERE rolname = 'navigator_demo_runtime'"
+                            )
+                        )
+                    ).scalar_one()
+                assert remains_elevated is True
+            finally:
+                async with engine.begin() as connection:
+                    await connection.execute(
+                        text("ALTER ROLE navigator_demo_runtime NOCREATEROLE NOINHERIT")
+                    )
+                await dispose_database_engine(engine)
+
+        asyncio.run(exercise_elevated_role_rejection())
+    finally:
         _drop_database(name)
 
 

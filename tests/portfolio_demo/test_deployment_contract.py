@@ -185,6 +185,24 @@ def test_postgres_role_policy_denies_public_and_runtime_writes() -> None:
     assert not re.search(r"CREATE\s+ROLE\s+\w+\s+LOGIN", role_policy, re.IGNORECASE)
 
 
+def test_managed_postgres_runtime_provisioning_never_alters_protected_flags() -> None:
+    store = _read("src/saudi_business_launch_navigator/portfolio_demo/store.py")
+
+    for unsupported_mutation in (
+        "NOSUPERUSER",
+        "SUPERUSER",
+        "NOREPLICATION",
+        "REPLICATION",
+        "NOBYPASSRLS",
+        "BYPASSRLS",
+    ):
+        assert unsupported_mutation not in store
+    assert "CREATE ROLE {PORTFOLIO_DEMO_RUNTIME_ROLE} WITH LOGIN NOINHERIT" in store
+    assert "ALTER ROLE {PORTFOLIO_DEMO_RUNTIME_ROLE} WITH LOGIN NOINHERIT" in store
+    assert "portfolio demo database owner requires CREATEROLE" in store
+    assert "runtime role has unexpected elevated privileges" in store
+
+
 def test_docker_contexts_exclude_secrets_data_and_test_artifacts() -> None:
     backend_ignore = _read(".dockerignore")
     frontend_ignore = _read("frontend/.dockerignore")
