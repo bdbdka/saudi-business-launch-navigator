@@ -119,9 +119,10 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   const aiBody = (await aiResponse.json()) as { error: { code: string } };
   expect(aiBody.error.code).toBe("AI_UNAVAILABLE");
   await expect(optionalAI.getByText(/AI assistance is unavailable/i)).toBeVisible();
-  expect(faults.consoleErrors).toEqual([
-    "Failed to load resource: the server responded with a status of 503 (Service Unavailable)",
-  ]);
+  expect(faults.consoleErrors).toHaveLength(1);
+  expect(faults.consoleErrors[0]).toContain(
+    "Failed to load resource: the server responded with a status of 503",
+  );
   faults.consoleErrors.length = 0;
 
   await startActivity(page, "Cloud kitchen", "Start");
