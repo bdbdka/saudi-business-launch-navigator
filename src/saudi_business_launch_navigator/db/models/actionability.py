@@ -144,7 +144,7 @@ class RequirementActionabilityVersion(Base):
             ">= (value_payload ->> 'minimum')::numeric))",
             name="duration_payload_shape",
         ),
-        CheckConstraint("btrim(official_excerpt_ar) <> ''", name="official_excerpt_ar_nonblank"),
+        CheckConstraint("btrim(official_excerpt_ar) <> ''", name="official_excerpt_ar_nonbl"),
         CheckConstraint("btrim(excerpt_locator) <> ''", name="excerpt_locator_nonblank"),
         CheckConstraint(
             f"verification_status IN ({enum_sql(RequirementVerificationStatus)})",
@@ -177,7 +177,7 @@ class RequirementActionabilityVersion(Base):
         ),
         CheckConstraint(
             "verification_status NOT IN ('expired', 'superseded', 'historical') OR NOT is_current",
-            name="inactive_status_not_current",
+            name="inactive_status_not_curre",
         ),
         CheckConstraint(
             "supersedes_actionability_version_id IS DISTINCT FROM id",

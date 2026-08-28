@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { navigatorAPI, resolveAPIBaseURL } from "@/lib/api/client";
+import { API_BASE_URL, navigatorAPI, resolveAPIBaseURL } from "@/lib/api/client";
 import { activitiesResponse, checklistResponse, activities } from "@/tests/fixtures";
 
 afterEach(() => vi.unstubAllGlobals());
@@ -36,7 +36,7 @@ describe("typed API client", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(navigatorAPI.activities()).resolves.toEqual(activitiesResponse);
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://127.0.0.1:8000/api/v1/activities",
+      `${API_BASE_URL}/api/v1/activities`,
       expect.objectContaining({ cache: "no-store", credentials: "omit" }),
     );
   });
