@@ -21,10 +21,10 @@ export function OfficialLink({
 }) {
   const { locale } = useCatalogPresentation();
   const isDemo = useIsPortfolioDemo();
-  if (isDemo) {
+  if (isDemo && isSyntheticPlaceholderUrl(url)) {
     const demoLabel = locale === "ar"
-      ? "حول رابط العرض غير الحكومي"
-      : "About this non-government demo link";
+      ? "عن بيانات النسخة التجريبية"
+      : "About the demo data";
     return (
       <a
         className={prominent ? "official-service-link" : "official-source-link"}
@@ -57,8 +57,21 @@ export function OfficialLink({
 export function safeOfficialUrl(value: string): string | null {
   try {
     const url = new URL(value);
-    return url.protocol === "https:" ? url.toString() : null;
+    return url.protocol === "https:" && !isInvalidHostname(url.hostname) ? url.toString() : null;
   } catch {
     return null;
   }
+}
+
+function isSyntheticPlaceholderUrl(value: string): boolean {
+  try {
+    return isInvalidHostname(new URL(value).hostname);
+  } catch {
+    return false;
+  }
+}
+
+function isInvalidHostname(hostname: string): boolean {
+  const normalized = hostname.toLowerCase().replace(/\.$/, "");
+  return normalized === "invalid" || normalized.endsWith(".invalid");
 }

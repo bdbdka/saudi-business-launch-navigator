@@ -28,14 +28,11 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
 
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
-  await expect(page.getByTestId("portfolio-demo-notice")).toContainText(
-    "نسخة عرض تجريبية",
-  );
-  await expect(page.getByTestId("portfolio-demo-notice")).toContainText(
-    "بيانات نموذجية",
-  );
+  await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeVisible();
+  await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
 
   await startActivity(page, "مطعم", "ابدأ");
+  await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toHaveCount(0);
   const progress = page.getByRole("progressbar", { name: "تقدم الأسئلة" });
   await expect(progress).toHaveAttribute("aria-valuemax", "8");
 
@@ -71,11 +68,14 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(5);
   await expect(page.locator(".requirement-item.missing")).toHaveCount(1);
   await expect(
-    page.getByText("حدود بيانات العرض النموذجية · اعرف المزيد", { exact: true }),
+    page.getByText("حدود التغطية · اعرف المزيد", { exact: true }),
   ).toBeVisible();
   await expect(
-    page.getByRole("link", { name: "حول رابط العرض غير الحكومي" }).first(),
+    page.getByRole("link", { name: "عن بيانات النسخة التجريبية" }).first(),
   ).toHaveAttribute("href", "/ar/about#methodology");
+  await expect(page.getByTestId("demo-result-scope-note")).toHaveCount(1);
+  await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
+  await expect(page.getByText(/مسار نموذجي غير حكومي/)).toHaveCount(0);
   await expect(page.locator(".final-outcome")).toBeVisible();
 
   await page.getByRole("button", { name: "أجب الآن", exact: true }).first().click();
@@ -103,7 +103,7 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
 
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
-  await expect(page.getByTestId("portfolio-demo-notice")).toContainText("Portfolio demo");
+  await expect(page.getByText("Independent portfolio demo. Not a government service.")).toBeVisible();
 
   const optionalAI = page.locator("details.optional-ai");
   await optionalAI.locator("summary").click();
@@ -145,25 +145,32 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expect(page.getByRole("heading", { name: "Your business launch checklist" })).toBeVisible();
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(5);
   await expect(
-    page.getByRole("link", { name: "About this non-government demo link" }).first(),
+    page.getByRole("link", { name: "About the demo data" }).first(),
   ).toHaveAttribute("href", "/en/about#methodology");
+  await expect(page.getByTestId("demo-result-scope-note")).toHaveCount(1);
+  await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
+  await expect(page.getByText(/non-government sample route/i)).toHaveCount(0);
   expectRuntimeClean(faults);
 });
 
-test("About and mobile views retain the bilingual demo boundary", async ({ page }) => {
+test("About and mobile views keep the full bilingual demo boundary without a banner", async ({ page }) => {
   const faults = collectRuntimeFaults(page);
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/ar");
+  await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+
   await page.goto("/ar/about");
 
-  await expect(page.getByTestId("portfolio-demo-notice")).toContainText(
-    "نسخة عرض تجريبية",
-  );
+  await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "حول دليل تأسيس المنشآت" })).toBeVisible();
+  await expect(page.getByText(/هذا مشروع مستقل غير تابع لأي جهة حكومية/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
 
   await page.goto("/en/about");
-  await expect(page.getByTestId("portfolio-demo-notice")).toContainText("Portfolio demo");
+  await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "About the Business Launch Guide" })).toBeVisible();
+  await expect(page.getByText(/This is an independent project/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
   expectRuntimeClean(faults);
 });

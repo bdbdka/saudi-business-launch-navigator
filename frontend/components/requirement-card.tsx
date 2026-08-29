@@ -26,26 +26,28 @@ export function RequirementCard({
   onCompletionChange?: (completed: boolean) => void;
   onAnswerMissing: (factCode: QuestionFactCode) => void;
 }) {
+  const isDemo = useIsPortfolioDemo();
   const title = locale === "ar"
     ? item.project_arabic_title
     : item.project_english_title ?? item.project_arabic_title;
   const description = locale === "ar"
     ? item.project_arabic_description
     : item.project_english_description ?? item.project_arabic_description;
-  const authority = locale === "ar"
-    ? item.authority.name_ar
-    : item.authority.name_en ?? item.authority.name_ar;
+  const authority = isDemo
+    ? (locale === "ar" ? "جهة افتراضية" : "Fictional provider")
+    : locale === "ar"
+      ? item.authority.name_ar
+      : item.authority.name_en ?? item.authority.name_ar;
   const primary = item.sources.find((source) => source.source_role === "primary") ?? item.sources[0];
   const reasons = copy.reasonLabels as Record<string, string>;
-  const isDemo = useIsPortfolioDemo();
   const authorityLabel = isDemo
-    ? (locale === "ar" ? "جهة نموذجية" : "Sample provider")
+    ? (locale === "ar" ? "الجهة المعروضة" : "Displayed provider")
     : copy.results.authority;
   const sourceLabel = isDemo
-    ? (locale === "ar" ? "دليل نموذجي" : "Sample evidence")
+    ? (locale === "ar" ? "معلومة المصدر" : "Source information")
     : copy.results.sourceTitle;
   const reviewedLabel = isDemo
-    ? (locale === "ar" ? "تاريخ إعداد العينة" : "Sample prepared")
+    ? (locale === "ar" ? "تاريخ الإعداد" : "Prepared")
     : copy.results.reviewed;
 
   return (

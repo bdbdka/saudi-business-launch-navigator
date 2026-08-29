@@ -66,23 +66,49 @@ async function answerSequence(labels: string[]) {
 }
 
 describe("Arabic-first simplified shell", () => {
-  it("derives the portfolio-demo warning from the real activities response", async () => {
+  it("keeps demo disclosure concise across homepage, questionnaire, and results", async () => {
     vi.stubEnv("NEXT_PUBLIC_CATALOG_MODE", "PORTFOLIO_DEMO_CATALOG");
+    const demoMetadata = {
+      catalog_mode: "PORTFOLIO_DEMO_CATALOG",
+      publication_state: "SAMPLE_ONLY",
+      data_classification: "SYNTHETIC_PORTFOLIO_DEMO",
+      public_catalog_approved: false,
+      warning_ar: "نسخة تجريبية ببيانات نموذجية ولا تستخدم لقرار تنظيمي.",
+      warning_en: "Portfolio demo with sample data; not for regulatory decisions.",
+    } as const;
     api.activities.mockResolvedValue({
       ...activitiesResponse,
-      metadata: {
-        catalog_mode: "PORTFOLIO_DEMO_CATALOG",
-        publication_state: "SAMPLE_ONLY",
-        data_classification: "SYNTHETIC_PORTFOLIO_DEMO",
-        public_catalog_approved: false,
-        warning_ar: "نسخة تجريبية ببيانات نموذجية ولا تستخدم لقرار تنظيمي.",
-        warning_en: "Portfolio demo with sample data; not for regulatory decisions.",
-      },
+      metadata: demoMetadata,
+    });
+    api.questionnaire.mockImplementation(async (code) => {
+      const activity = activities.find((item) => item.code === code)!;
+      return { ...questionnaireResponse(activity), metadata: demoMetadata };
+    });
+    api.checklist.mockResolvedValue({
+      ...checklistResponse(activities[1], { applies: 7, doesNotApply: 0, needs: 0 }),
+      metadata: demoMetadata,
     });
     render(<NavigatorApp initialLocale="ar" />);
 
-    const notice = await screen.findByTestId("portfolio-demo-notice");
-    expect(notice).toHaveTextContent("نسخة تجريبية ببيانات نموذجية");
+    await waitFor(() => expect(api.activities).toHaveBeenCalled());
+    expect(screen.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeInTheDocument();
+    expect(screen.queryByText(demoMetadata.warning_ar)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("portfolio-demo-notice")).not.toBeInTheDocument();
+
+    await startAndSelect("مقهى");
+    expect(screen.queryByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).not.toBeInTheDocument();
+    expect(screen.queryByText(demoMetadata.warning_ar)).not.toBeInTheDocument();
+    expect(screen.getAllByText("يعتمد الدليل على بيانات نموذجية في النسخة التجريبية، ولا يمثل جهة حكومية.")).toHaveLength(1);
+
+    await answerSequence(["نعم", "نعم", "نعم", "تأكدت عبر الهيئة أنه إلزامي"]);
+    await screen.findByRole("heading", { name: "قائمة بدء مشروعك" });
+    expect(screen.getAllByTestId("demo-result-scope-note")).toHaveLength(1);
+    expect(screen.getByTestId("demo-result-scope-note")).toHaveTextContent(
+      "هذه نتيجة تجريبية مبنية على بيانات نموذجية، ولا تغني عن التحقق من الجهة الرسمية.",
+    );
+    expect(screen.getAllByText("جهة افتراضية").length).toBeGreaterThan(0);
+    expect(screen.queryByText("جهة رسمية اختبارية")).not.toBeInTheDocument();
+    expect(document.querySelector('a[href*=".invalid"]')).not.toBeInTheDocument();
   });
 
   it("renders the focused Arabic landing page with activities as the immediate action", async () => {
@@ -90,7 +116,7 @@ describe("Arabic-first simplified shell", () => {
     expect(screen.getByRole("link", { name: "دليل تأسيس المنشآت في السعودية" })).toHaveTextContent("دليل تأسيس المنشآت");
     expect(screen.getByRole("link", { name: "دليل تأسيس المنشآت في السعودية" })).toHaveAttribute("href", "/ar");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("اعرف ما تحتاج إليه لبدء مشروعك");
-    expect(screen.getByText("أجب عن أسئلة بسيطة وسنرتب لك المتطلبات والخطوات التي تنطبق على مشروعك، مع روابط إلى المصادر والخدمات الحكومية الرسمية.")).toBeInTheDocument();
+    expect(screen.getByText("أجب عن أسئلة بسيطة وشاهد مسارًا منظمًا وقائمة واضحة بناءً على إجاباتك.")).toBeInTheDocument();
     const stages = screen.getByRole("list", { name: "ثلاث خطوات بسيطة" });
     expect(within(stages).getAllByRole("listitem").map((item) => item.textContent)).toEqual([
       "اختر نشاطك",
@@ -99,11 +125,11 @@ describe("Arabic-first simplified shell", () => {
     ]);
     expect(
       screen.getByText(
-        "سياق الإصدار التجريبي هو المقاهي والمطاعم والمطابخ السحابية في الرياض وجدة؛ ولا يجمع العرض الحالي المدينة أو يقيّم اختلافات خاصة بها.",
+        "النطاق الحالي هو المقاهي والمطاعم والمطابخ السحابية في الرياض وجدة؛ ولا يجمع هذا الإصدار المدينة أو يقيّم اختلافات خاصة بها.",
       ),
     ).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /مقهى/ })).toBeInTheDocument();
-    expect(screen.getByText(/دليل إرشادي مستقل، وليس منصة حكومية/)).toBeInTheDocument();
+    expect(screen.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeInTheDocument();
     await waitFor(() => expect(document.documentElement).toHaveAttribute("dir", "rtl"));
     expect(document.documentElement).toHaveAttribute("lang", "ar");
   });
@@ -113,8 +139,8 @@ describe("Arabic-first simplified shell", () => {
     expect(screen.getByRole("link", { name: "Saudi Business Launch Navigator" })).toHaveTextContent("Business Launch Guide");
     expect(screen.getByRole("link", { name: "Saudi Business Launch Navigator" })).toHaveAttribute("href", "/en");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("See what you need to start your business");
-    expect(screen.getByText(/Answer a few simple questions and we will organize/)).toBeInTheDocument();
-    expect(screen.getByText(/The pilot context is coffee shops, restaurants, and cloud kitchens/)).toBeInTheDocument();
+    expect(screen.getByText(/Answer a few simple questions to see an organized launch path/)).toBeInTheDocument();
+    expect(screen.getByText(/Current coverage is coffee shops, restaurants, and cloud kitchens/)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /Coffee shop/ })).toBeInTheDocument();
     await waitFor(() => expect(document.documentElement).toHaveAttribute("dir", "ltr"));
     expect(document.documentElement).toHaveAttribute("lang", "en");
@@ -367,7 +393,7 @@ describe("API-driven guided workflow", () => {
     expect(within(firstCard).getByText("جهة رسمية اختبارية")).toBeInTheDocument();
     const link = within(firstCard).getAllByRole("link", { name: /المصدر الرسمي/ })[0];
     expect(link).toHaveClass("official-source-link");
-    expect(link).toHaveAttribute("href", "https://official.example.invalid/official-source");
+    expect(link).toHaveAttribute("href", "https://official.example.gov.sa/official-source");
     expect(link).toHaveAttribute("rel", "noopener noreferrer");
     expect(within(firstCard).getByText(/إجاباتك المرتبطة/)).not.toBeVisible();
     await userEvent.click(within(firstCard).getByText("عرض التفاصيل"));
@@ -408,7 +434,7 @@ describe("API-driven guided workflow", () => {
     const required = screen.getByRole("heading", { name: "ما تحتاج إليه" }).closest("section")!;
     expect(within(required).getByRole("link", { name: /ابدأ من هنا/ })).toHaveAttribute(
       "href",
-      "https://official.example.invalid/service",
+      "https://official.example.gov.sa/service",
     );
     expect(within(required).getByText("قبل البدء")).toBeInTheDocument();
     expect(within(required).getByText("المستندات المطلوبة")).toBeInTheDocument();
@@ -554,7 +580,7 @@ describe("API-driven guided workflow", () => {
     const officialDestination = within(finalOutcome).getAllByRole("link", { name: /التحقق عبر الجهة الرسمية/ })[0];
     expect(officialDestination).toHaveAttribute(
       "href",
-      "https://official.example.invalid/service",
+      "https://official.example.gov.sa/service",
     );
     expect(officialDestination).toHaveAttribute("target", "_blank");
     expect(officialDestination).toHaveAttribute("rel", "noopener noreferrer");
@@ -730,7 +756,7 @@ describe("API-driven guided workflow", () => {
     expect(within(finalOutcome).getAllByText("Synthetic official authority").length).toBeGreaterThan(0);
     expect(within(finalOutcome).getAllByRole("link", { name: /Verify with the official authority/ })[0]).toHaveAttribute(
       "href",
-      "https://official.example.invalid/service",
+      "https://official.example.gov.sa/service",
     );
     expect(within(finalOutcome).getByText(/Before considering your setup process complete/)).toBeInTheDocument();
     expect(within(finalOutcome).getByText(/This result shows the requirements and information/)).toBeInTheDocument();

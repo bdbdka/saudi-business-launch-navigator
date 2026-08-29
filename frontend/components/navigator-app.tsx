@@ -5,7 +5,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActivitySelector } from "@/components/activity-selector";
 import { CatalogPresentationProvider } from "@/components/catalog-mode-context";
 import { ChecklistResults } from "@/components/checklist-results";
-import { DemoNotice } from "@/components/demo-notice";
 import { Header } from "@/components/header";
 import { Footer, Hero } from "@/components/landing";
 import { OptionalAIEntry } from "@/components/optional-ai-entry";
@@ -252,7 +251,6 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
     <CatalogPresentationProvider metadata={catalogBoundary} locale={locale}>
       <a className="skip-link" href="#main-content">{locale === "ar" ? "تجاوز إلى المحتوى الرئيسي" : "Skip to main content"}</a>
       <Header locale={locale} copy={copy} onLocaleChange={changeLocale} />
-      <DemoNotice metadata={catalogBoundary} locale={locale} />
       <main id="main-content" tabIndex={-1}>
         {stage === "activities" && <Hero copy={copy} />}
         <section className="navigator-section" id="navigator">

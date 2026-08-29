@@ -85,8 +85,8 @@ export function ChecklistResults({
           <p>
             {isDemo
               ? (locale === "ar"
-                  ? "هذه مهام نموذجية ظهرت وفق إجاباتك في تجربة العرض."
-                  : "These sample tasks appear from your answers in the portfolio demo.")
+                  ? "تظهر هذه العناصر وفق إجاباتك الحالية."
+                  : "These items follow from your current answers.")
               : copy.results.requiredBody}
           </p>
         </div>
@@ -117,8 +117,8 @@ export function ChecklistResults({
             <p>
               {isDemo
                 ? (locale === "ar"
-                    ? "أكمل الإجابة النموذجية حتى تعرض التجربة النتيجة الحتمية."
-                    : "Complete the sample answer so the demo can show the deterministic result.")
+                    ? "أكمل الإجابات الناقصة حتى تظهر النتيجة الحتمية."
+                    : "Complete missing answers to resolve the deterministic result.")
                 : copy.results.missingBody}
             </p>
           )}
@@ -147,8 +147,8 @@ export function ChecklistResults({
           <p>
             {isDemo
               ? (locale === "ar"
-                  ? "هذه وجهات نموذجية توضح آلية التوجيه ولا تمثل خدمات حكومية."
-                  : "These sample destinations demonstrate routing and are not government services.")
+                  ? "هذه الأمور خارج نسبة الإنجاز وتحتاج إلى مراجعة منفصلة."
+                  : "These items are outside completion progress and need separate review.")
               : copy.results.verifyBody}
           </p>
         </div>

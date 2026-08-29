@@ -38,17 +38,17 @@ describe("localized public information pages", () => {
 
     const how = screen.getByRole("heading", { name: "كيف يعمل؟" }).closest("section")!;
     expect(within(how).getAllByRole("listitem")).toHaveLength(4);
-    expect(how).toHaveTextContent("راجع الخدمات والمصادر الرسمية");
-    expect(how).toHaveTextContent("المتطلبات التي تنطبق");
+    expect(how).toHaveTextContent("راجع الأدلة ومعلومات التوجيه المعروضة");
+    expect(how).toHaveTextContent("العناصر التي تنطبق");
     expect(how).toHaveTextContent("المعلومات التي ما زلنا نحتاجها");
-    expect(how).toHaveTextContent("الأمور التي يجب التحقق منها");
+    expect(how).toHaveTextContent("الأمور التي يجب مراجعتها");
     expect(how).toHaveTextContent("المتطلبات السابقة والمستندات والرسوم والخطوات");
 
     const methodology = screen.getByRole("heading", { name: "منهجية الدليل" }).closest("section")!;
     expect(methodology).toHaveAttribute("id", "methodology");
-    expect(methodology).toHaveTextContent("المصادر الأصلية للجهات الحكومية السعودية فقط");
-    expect(methodology).toHaveTextContent("النص العربي الرسمي هو المرجع الأساسي");
-    expect(methodology).toHaveTextContent("لا نعرض المعلومة على أنها متطلب متحقق منه");
+    expect(methodology).toHaveTextContent("بيانات نموذجية فقط");
+    expect(methodology).toHaveTextContent("النص العربي الرسمي المرجع الأساسي");
+    expect(methodology).toHaveTextContent("لا تنشر نسخة العرض البحث التنظيمي الخاص المحكوم");
 
     const privacy = screen.getByRole("heading", { name: "ماذا يحدث لإجاباتي؟" }).closest("section")!;
     expect(privacy).toHaveAttribute("id", "privacy");
@@ -56,9 +56,10 @@ describe("localized public information pages", () => {
     expect(privacy).toHaveTextContent("ذاكرة الصفحة فقط");
     expect(privacy).toHaveTextContent("لا يستخدم هذا الإصدار التخزين المحلي أو ملفات تعريف الارتباط");
     expect(privacy).toHaveTextContent("يُرسل النص عند اختيارك الإرسال فقط");
-    expect(privacy).toHaveTextContent("سياسة الخصوصية الخاصة به");
+    expect(privacy).toHaveTextContent("سياسة خصوصية الجهة");
 
-    expect(container).toHaveTextContent("هذا الدليل ليس منصة حكومية ولا يمثل أي جهة حكومية");
+    expect(container).toHaveTextContent("هذا مشروع مستقل غير تابع لأي جهة حكومية ولا يمثلها");
+    expect(container).toHaveTextContent("لا تعتمد على بيانات نسخة العرض");
     expect(container).toHaveTextContent("لا يقدم استشارة قانونية");
     expect(container).toHaveTextContent("لا يحسب وضعك الضريبي تلقائيًا");
     expect(container).toHaveTextContent("لا يحسم مسألة عندما لا تكفي الأدلة الرسمية");
@@ -88,7 +89,9 @@ describe("localized public information pages", () => {
     );
     expect(screen.getByRole("link", { name: "Back to the guide" })).toHaveAttribute("href", "/en");
     expect(container).toHaveTextContent("not a government service");
-    expect(container).toHaveTextContent("does not guarantee licensing or approval");
+    expect(container).toHaveTextContent("not affiliated with or representative of any government authority");
+    expect(container).toHaveTextContent("does not publish the private governed regulatory research");
+    expect(container).toHaveTextContent("does not issue licences for you, guarantee approval");
   });
 
   it("links the minimal footer to the localized About, Methodology, and Privacy sections", () => {
@@ -112,8 +115,9 @@ describe("localized public information pages", () => {
       "href",
       "/ar/about#privacy",
     );
-    expect(footer).toHaveTextContent("ليس منصة حكومية");
-    expect(footer).toHaveTextContent("لا يضمن إصدار التراخيص أو الموافقات");
+    expect(footer).toHaveTextContent(
+      "يعتمد الدليل على بيانات نموذجية في النسخة التجريبية، ولا يمثل جهة حكومية.",
+    );
   });
 });
 

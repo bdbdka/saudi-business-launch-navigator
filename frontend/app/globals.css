@@ -70,19 +70,6 @@ input:focus-visible,
   text-align: center;
 }
 .site-header { background: rgb(247 246 241 / 96%); }
-.portfolio-demo-notice {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  padding: 8px 20px;
-  color: var(--warning);
-  background: var(--warning-soft);
-  border-block: 1px solid #ead9a7;
-  font-size: 0.75rem;
-  line-height: 1.55;
-  text-align: center;
-}
-.portfolio-demo-notice strong { white-space: nowrap; }
 .header-shell {
   display: flex;
   align-items: center;
@@ -541,7 +528,6 @@ input:focus-visible,
 @media (max-width: 720px) {
   .section-shell, .header-shell { width: min(100% - 28px, 740px); }
   .development-banner { padding-inline: 12px; font-size: 0.68rem; }
-  .portfolio-demo-notice { align-items: center; flex-direction: column; gap: 2px; }
   .header-shell { min-height: 60px; }
   .hero { padding-block: 42px 20px; }
   .hero h1 { font-size: clamp(2rem, 10vw, 3rem); }

@@ -10,20 +10,6 @@ export function configuredCatalogMode(): PublicCatalogMode | null {
   return null;
 }
 
-export function configuredDemoBoundary(): CatalogBoundary | null {
-  if (configuredCatalogMode() !== "PORTFOLIO_DEMO_CATALOG") return null;
-  return {
-    catalog_mode: "PORTFOLIO_DEMO_CATALOG",
-    publication_state: "SAMPLE_ONLY",
-    data_classification: "SYNTHETIC_PORTFOLIO_DEMO",
-    public_catalog_approved: false,
-    warning_ar:
-      "نسخة تجريبية لأغراض العرض التقني. تستخدم هذه النسخة بيانات نموذجية ولا ينبغي الاعتماد عليها لاتخاذ قرار تنظيمي فعلي.",
-    warning_en:
-      "Portfolio demonstration. This version uses sample data and should not be relied on for real regulatory decisions.",
-  };
-}
-
 export function catalogBoundaryMatchesBuild(metadata: CatalogBoundary): boolean {
   const expected = configuredCatalogMode();
   return expected !== null && metadata.catalog_mode === expected;

@@ -79,8 +79,8 @@ export function FinalOutcome({
             <p>
               {isDemo
                 ? (locale === "ar"
-                    ? "وضعت علامة إنجاز على جميع مهام العرض النموذجية في هذه التجربة التقنية."
-                    : "You marked all sample portfolio-demo tasks as complete in this technical demonstration.")
+                    ? "وضعت علامة إنجاز على جميع مهام القائمة."
+                    : "You marked all checklist tasks as complete.")
                 : copy.results.finalFollowUpCompleteBody}
             </p>
           </div>
@@ -116,8 +116,8 @@ export function FinalOutcome({
               <p>
                 {isDemo
                   ? (locale === "ar"
-                      ? "لا توجد وجهة نموذجية إضافية في هذه التجربة."
-                      : "No additional sample destination remains in this demonstration.")
+                      ? "لا توجد وجهة إضافية للمراجعة في هذه القائمة."
+                      : "No additional review destination remains in this checklist.")
                   : copy.results.finalNoVerificationBody}
               </p>
             </div>
@@ -126,27 +126,19 @@ export function FinalOutcome({
       )}
 
       <div className="final-outcome-boundary">
-        <p>
-          {isDemo
-            ? (locale === "ar"
-                ? "تعرض هذه النتيجة بيانات نموذجية لإثبات عمل القواعد والواجهة فقط."
-                : "This result uses sample data only to demonstrate the rules engine and interface.")
-            : copy.results.finalScope}
-        </p>
-        <p>
-          {isDemo
-            ? (locale === "ar"
-                ? "لا تمثل هذه المهام متطلبات سعودية منشورة أو معتمدة."
-                : "These tasks are not published or approved Saudi regulatory requirements.")
-            : copy.results.finalScopeCaution}
-        </p>
-        <strong>
-          {isDemo
-            ? (locale === "ar"
-                ? "لا تستخدم هذه النتيجة لاتخاذ قرار تنظيمي فعلي."
-                : "Do not use this result for a real regulatory decision.")
-            : copy.results.finalSafety}
-        </strong>
+        {isDemo ? (
+          <p data-testid="demo-result-scope-note">
+            {locale === "ar"
+              ? "هذه نتيجة تجريبية مبنية على بيانات نموذجية، ولا تغني عن التحقق من الجهة الرسمية."
+              : "This demo result uses sample data and does not replace confirmation with the relevant official authority."}
+          </p>
+        ) : (
+          <>
+            <p>{copy.results.finalScope}</p>
+            <p>{copy.results.finalScopeCaution}</p>
+            <strong>{copy.results.finalSafety}</strong>
+          </>
+        )}
       </div>
     </section>
   );
@@ -168,13 +160,17 @@ function OfficialVerificationSummary({
     ?? item.topic_code;
   const destination = item.destinations.find((candidate) => candidate.is_primary)
     ?? item.destinations[0];
-  const whatToVerify = localized(item.what_to_verify_ar, item.what_to_verify_en, locale)
-    ?? (destination
-      ? localized(destination.what_to_verify_ar, destination.what_to_verify_en, locale)
-      : null)
-    ?? localized(item.limitation_summary_ar, item.limitation_summary_en, locale);
+  const whatToVerify = isDemo
+    ? null
+    : localized(item.what_to_verify_ar, item.what_to_verify_en, locale)
+      ?? (destination
+        ? localized(destination.what_to_verify_ar, destination.what_to_verify_en, locale)
+        : null)
+      ?? localized(item.limitation_summary_ar, item.limitation_summary_en, locale);
   const authority = destination
-    ? localized(destination.source.authority.name_ar, destination.source.authority.name_en, locale)
+    ? isDemo
+      ? (locale === "ar" ? "جهة افتراضية" : "Fictional provider")
+      : localized(destination.source.authority.name_ar, destination.source.authority.name_en, locale)
     : null;
 
   return (
@@ -185,7 +181,7 @@ function OfficialVerificationSummary({
         <p className="final-verification-authority">
           <strong>
             {isDemo
-              ? (locale === "ar" ? "جهة نموذجية" : "Sample provider")
+              ? (locale === "ar" ? "الجهة المعروضة" : "Displayed provider")
               : copy.results.authority}:
           </strong>{" "}
           {authority}

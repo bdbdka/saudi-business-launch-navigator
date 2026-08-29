@@ -13,15 +13,15 @@ export function CoverageNotice({ result, locale, copy }: { result: ChecklistResu
         <summary>
           {isDemo
             ? locale === "ar"
-              ? "حدود بيانات العرض النموذجية · اعرف المزيد"
-              : "Sample demo coverage · Learn more"
+              ? "حدود التغطية · اعرف المزيد"
+              : "Coverage limits · Learn more"
             : copy.coverage.compact}
         </summary>
         <p>
           {isDemo
             ? (locale === "ar"
-                ? "هذه التغطية نموذجية ومصممة لعرض سلوك المنتج فقط."
-                : "This is sample coverage designed only to demonstrate product behavior.")
+                ? "تعرض القائمة السيناريوهات التي تغطيها النسخة الحالية فقط."
+                : "The checklist covers only the scenarios represented in the current version.")
             : copy.coverage.body}
         </p>
         <p className="coverage-source-note">

@@ -37,8 +37,8 @@ export function ResultSummary({
       <p>
         {isDemo
           ? (locale === "ar"
-              ? "راجع المهام النموذجية وأكمل أي إجابة ناقصة لفهم تجربة المنتج."
-              : "Review the sample tasks and complete missing answers to explore the product flow.")
+              ? "راجع العناصر وأكمل أي إجابة ناقصة لفهم مسار المنتج."
+              : "Review the items and complete missing answers to explore the product flow.")
           : copy.results.introBody}
       </p>
 
@@ -55,8 +55,8 @@ export function ResultSummary({
           <p>
             {isDemo
               ? (locale === "ar"
-                  ? "حُددت قائمة العرض من البيانات النموذجية وإجاباتك الحالية."
-                  : "This demo checklist was determined from sample data and your current answers.")
+                  ? "حُددت هذه القائمة بناءً على إجاباتك الحالية."
+                  : "This checklist was determined from your current answers.")
               : copy.results.checklistDetermined}
           </p>
         )}
@@ -82,7 +82,9 @@ export function ResultSummary({
             <span style={{ width: `${progressPercent}%` }} />
           </div>
         )}
-        <p className="personal-progress-disclaimer">{copy.results.personalProgressDisclaimer}</p>
+        {!isDemo && (
+          <p className="personal-progress-disclaimer">{copy.results.personalProgressDisclaimer}</p>
+        )}
       </div>
     </div>
   );

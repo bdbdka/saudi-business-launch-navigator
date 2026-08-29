@@ -1,4 +1,3 @@
-import { DemoBoundaryProbe } from "@/components/demo-boundary-probe";
 import { Header } from "@/components/header";
 import { Footer } from "@/components/landing";
 import type { Dictionary, Locale } from "@/lib/i18n";
@@ -10,7 +9,6 @@ export function AboutPage({ locale, copy }: { locale: Locale; copy: Dictionary }
         {locale === "ar" ? "تجاوز إلى المحتوى الرئيسي" : "Skip to main content"}
       </a>
       <Header locale={locale} copy={copy} page="about" />
-      <DemoBoundaryProbe locale={locale} />
       <main className="about-page" id="main-content" tabIndex={-1}>
         <div className="section-shell about-shell">
           <header className="about-hero">

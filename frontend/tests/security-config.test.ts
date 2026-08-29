@@ -68,10 +68,12 @@ describe("public frontend security configuration", () => {
   });
 
   it("allows only HTTPS official links", () => {
-    expect(safeOfficialUrl("https://official.example.invalid/service")).toBe(
-      "https://official.example.invalid/service",
+    expect(safeOfficialUrl("https://official.example.gov.sa/service")).toBe(
+      "https://official.example.gov.sa/service",
     );
-    expect(safeOfficialUrl("http://official.example.invalid/service")).toBeNull();
+    expect(safeOfficialUrl("https://official.example.invalid/service")).toBeNull();
+    expect(safeOfficialUrl("https://nested.official.invalid/service")).toBeNull();
+    expect(safeOfficialUrl("http://official.example.gov.sa/service")).toBeNull();
     expect(safeOfficialUrl("javascript:alert(1)")).toBeNull();
     expect(safeOfficialUrl("not-a-url")).toBeNull();
   });

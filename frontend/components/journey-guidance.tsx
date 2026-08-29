@@ -88,11 +88,15 @@ function JourneyItem({
   const title = labels[item.topic_code]
     ?? (locale === "ar" ? item.title_ar : item.title_en ?? item.title_ar);
   const confirmation = item.coverage_state === "REQUIRES_OFFICIAL_CONFIRMATION";
-  const summary = confirmation
+  const summary = isDemo || confirmation
     ? null
     : localized(item.verified_summary_ar, item.verified_summary_en, locale);
-  const limitation = localized(item.limitation_summary_ar, item.limitation_summary_en, locale);
-  const whatToVerify = localized(item.what_to_verify_ar, item.what_to_verify_en, locale);
+  const limitation = isDemo
+    ? null
+    : localized(item.limitation_summary_ar, item.limitation_summary_en, locale);
+  const whatToVerify = isDemo
+    ? null
+    : localized(item.what_to_verify_ar, item.what_to_verify_en, locale);
 
   return (
     <article className="verification-item">
@@ -101,17 +105,23 @@ function JourneyItem({
       {limitation && <p className="guidance-limitation">{limitation}</p>}
       {whatToVerify && <p className="verification-action">{whatToVerify}</p>}
       {item.destinations.map((destination) => {
-        const guidance = localized(destination.guidance_ar, destination.guidance_en, locale);
-        const destinationCheck = localized(
-          destination.what_to_verify_ar,
-          destination.what_to_verify_en,
-          locale,
-        );
-        const authority = localized(
-          destination.source.authority.name_ar,
-          destination.source.authority.name_en,
-          locale,
-        );
+        const guidance = isDemo
+          ? null
+          : localized(destination.guidance_ar, destination.guidance_en, locale);
+        const destinationCheck = isDemo
+          ? null
+          : localized(
+              destination.what_to_verify_ar,
+              destination.what_to_verify_en,
+              locale,
+            );
+        const authority = isDemo
+          ? (locale === "ar" ? "جهة افتراضية" : "Fictional provider")
+          : localized(
+              destination.source.authority.name_ar,
+              destination.source.authority.name_en,
+              locale,
+            );
         return (
           <div className="journey-destination" key={destination.code}>
             {guidance && <p>{guidance}</p>}
@@ -120,7 +130,7 @@ function JourneyItem({
               <p className="authority-line">
                 <strong>
                   {isDemo
-                    ? (locale === "ar" ? "جهة نموذجية" : "Sample provider")
+                    ? (locale === "ar" ? "الجهة المعروضة" : "Displayed provider")
                     : copy.results.authority}:
                 </strong>{" "}
                 {authority}
