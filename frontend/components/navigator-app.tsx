@@ -20,6 +20,7 @@ import type {
   QuestionnaireAnswers,
 } from "@/lib/api/types";
 import { getDictionary, type Locale } from "@/lib/i18n";
+import { homeMetadataCopy } from "@/lib/metadata";
 
 type Stage = "activities" | "questionnaire" | "results";
 
@@ -98,11 +99,11 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
     setLocale(nextLocale);
     document.documentElement.lang = nextLocale;
     document.documentElement.dir = nextLocale === "ar" ? "rtl" : "ltr";
-    const nextCopy = getDictionary(nextLocale);
-    document.title = nextCopy.metadata.homeTitle;
-    document.querySelector('meta[name="description"]')?.setAttribute("content", nextCopy.metadata.homeDescription);
-    document.querySelector('meta[property="og:title"]')?.setAttribute("content", nextCopy.metadata.homeTitle);
-    document.querySelector('meta[property="og:description"]')?.setAttribute("content", nextCopy.metadata.homeDescription);
+    const nextMetadata = homeMetadataCopy(nextLocale);
+    document.title = nextMetadata.title;
+    document.querySelector('meta[name="description"]')?.setAttribute("content", nextMetadata.description);
+    document.querySelector('meta[property="og:title"]')?.setAttribute("content", nextMetadata.title);
+    document.querySelector('meta[property="og:description"]')?.setAttribute("content", nextMetadata.description);
     document.querySelector('meta[property="og:locale"]')?.setAttribute("content", nextLocale === "ar" ? "ar_SA" : "en_US");
     const suffix = `${window.location.search}${window.location.hash}`;
     window.history.replaceState(window.history.state, "", `/${nextLocale}${suffix}`);
@@ -252,7 +253,7 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
       <a className="skip-link" href="#main-content">{locale === "ar" ? "تجاوز إلى المحتوى الرئيسي" : "Skip to main content"}</a>
       <Header locale={locale} copy={copy} onLocaleChange={changeLocale} />
       <main id="main-content" tabIndex={-1}>
-        {stage === "activities" && <Hero copy={copy} />}
+        {stage === "activities" && <Hero copy={copy} locale={locale} />}
         <section className="navigator-section" id="navigator">
           <div className="section-shell">
             <div className="workflow-focus" ref={workflowRef} tabIndex={-1}>

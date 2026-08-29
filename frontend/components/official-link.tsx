@@ -2,9 +2,11 @@
 
 import {
   useCatalogPresentation,
-  useIsPortfolioDemo,
 } from "@/components/catalog-mode-context";
 import { ExternalLinkIcon } from "@/components/icons";
+import { presentSourceLink } from "@/lib/catalog-presentation";
+
+export { safeOfficialUrl } from "@/lib/catalog-presentation";
 
 export function OfficialLink({
   url,
@@ -19,30 +21,28 @@ export function OfficialLink({
   unavailableLabel: string;
   prominent?: boolean;
 }) {
-  const { locale } = useCatalogPresentation();
-  const isDemo = useIsPortfolioDemo();
-  if (isDemo && isSyntheticPlaceholderUrl(url)) {
-    const demoLabel = locale === "ar"
-      ? "عن بيانات النسخة التجريبية"
-      : "About the demo data";
+  const { locale, policy } = useCatalogPresentation();
+  const presented = presentSourceLink(url, policy.mode, locale);
+  if (presented.kind === "demo-information") {
     return (
       <a
         className={prominent ? "official-service-link" : "official-source-link"}
-        href={`/${locale}/about#methodology`}
+        href={presented.href}
         data-source-classification="synthetic-demo"
       >
-        {demoLabel}
+        {presented.label}
       </a>
     );
   }
 
-  const safeUrl = safeOfficialUrl(url);
-  if (!safeUrl) return <span className="source-unavailable">{unavailableLabel}</span>;
+  if (presented.kind === "unavailable") {
+    return <span className="source-unavailable">{unavailableLabel}</span>;
+  }
 
   return (
     <a
       className={prominent ? "official-service-link" : "official-source-link"}
-      href={safeUrl}
+      href={presented.href}
       target="_blank"
       rel="noopener noreferrer"
       aria-label={`${label} (${opensNewWindow})`}
@@ -52,26 +52,4 @@ export function OfficialLink({
       <ExternalLinkIcon />
     </a>
   );
-}
-
-export function safeOfficialUrl(value: string): string | null {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" && !isInvalidHostname(url.hostname) ? url.toString() : null;
-  } catch {
-    return null;
-  }
-}
-
-function isSyntheticPlaceholderUrl(value: string): boolean {
-  try {
-    return isInvalidHostname(new URL(value).hostname);
-  } catch {
-    return false;
-  }
-}
-
-function isInvalidHostname(hostname: string): boolean {
-  const normalized = hostname.toLowerCase().replace(/\.$/, "");
-  return normalized === "invalid" || normalized.endsWith(".invalid");
 }

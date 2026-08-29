@@ -1,6 +1,6 @@
 "use client";
 
-import { useIsPortfolioDemo } from "@/components/catalog-mode-context";
+import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import { visibleJourneyGuidance, type MissingNavigation } from "@/components/journey-guidance";
 import { OfficialLink } from "@/components/official-link";
 import type { ChecklistResult, JourneyGuidance } from "@/lib/api/types";
@@ -21,7 +21,8 @@ export function FinalOutcome({
   onEdit: () => void;
   onAnswerMissing: (factCode: MissingNavigation["fact_code"]) => void;
 }) {
-  const isDemo = useIsPortfolioDemo();
+  const { policy } = useCatalogPresentation();
+  const isDemo = policy.isPortfolioDemo;
   const totalApplicable = result.applies.length;
   const remaining = Math.max(0, totalApplicable - completedCount);
   const allApplicableMarked = totalApplicable > 0 && completedCount === totalApplicable;
@@ -50,21 +51,41 @@ export function FinalOutcome({
       {!allApplicableMarked && !missingOnlyState && !noApplicableState && (
         <div className="final-outcome-state">
           <h3 id="final-outcome-title">{copy.results.finalInProgressTitle}</h3>
-          <p>{interpolate(copy.results.finalInProgressCompletedTemplate, values)}</p>
-          <p>{interpolate(copy.results.finalInProgressRemainingTemplate, values)}</p>
+          <p>{interpolate(
+            isDemo
+              ? policy.text.finalInProgressCompletedTemplate
+              : copy.results.finalInProgressCompletedTemplate,
+            values,
+          )}</p>
+          <p>{interpolate(
+            isDemo
+              ? policy.text.finalInProgressRemainingTemplate
+              : copy.results.finalInProgressRemainingTemplate,
+            values,
+          )}</p>
         </div>
       )}
 
       {noApplicableState && (
         <div className="final-outcome-state">
-          <h3 id="final-outcome-title">{copy.results.finalNoApplicableTitle}</h3>
-          <p>{copy.results.finalNoApplicableBody}</p>
+          <h3 id="final-outcome-title">
+            {isDemo ? policy.text.finalNoApplicableTitle : copy.results.finalNoApplicableTitle}
+          </h3>
+          <p>
+            {isDemo
+              ? policy.text.noApplicableExplanation
+              : copy.results.finalNoApplicableBody}
+          </p>
         </div>
       )}
 
       {(allApplicableMarked || missingOnlyState) && unresolvedRegulatoryInformation && (
         <div className="final-outcome-state unresolved">
-          <h3 id="final-outcome-title">{copy.results.finalMissingInformationTitle}</h3>
+          <h3 id="final-outcome-title">
+            {isDemo
+              ? policy.text.finalMissingInformationTitle
+              : copy.results.finalMissingInformationTitle}
+          </h3>
           <p>{interpolate(copy.results.finalMissingInformationTemplate, values)}</p>
           <button className="button secondary small" type="button" onClick={onEdit}>
             {copy.results.edit}
@@ -75,17 +96,19 @@ export function FinalOutcome({
       {allApplicableMarked && !unresolvedRegulatoryInformation && (
         <>
           <div className="final-outcome-state complete">
-            <h3 id="final-outcome-title">{copy.results.finalFollowUpCompleteTitle}</h3>
+            <h3 id="final-outcome-title">
+              {isDemo
+                ? policy.text.finalFollowUpCompleteTitle
+                : copy.results.finalFollowUpCompleteTitle}
+            </h3>
             <p>
               {isDemo
-                ? (locale === "ar"
-                    ? "وضعت علامة إنجاز على جميع مهام القائمة."
-                    : "You marked all checklist tasks as complete.")
+                ? policy.text.completedChecklistExplanation
                 : copy.results.finalFollowUpCompleteBody}
             </p>
           </div>
 
-          {verificationCount > 0 ? (
+          {!isDemo && verificationCount > 0 ? (
             <div className="final-verification-summary">
               <h4>{copy.results.finalVerificationTitle}</h4>
               <ol className="final-verification-list">
@@ -110,36 +133,22 @@ export function FinalOutcome({
                 {copy.results.reviewFullVerification}
               </a>
             </div>
-          ) : (
+          ) : !isDemo ? (
             <div className="final-no-verification">
               <h4>{copy.results.finalNoVerificationTitle}</h4>
-              <p>
-                {isDemo
-                  ? (locale === "ar"
-                      ? "لا توجد وجهة إضافية للمراجعة في هذه القائمة."
-                      : "No additional review destination remains in this checklist.")
-                  : copy.results.finalNoVerificationBody}
-              </p>
+              <p>{copy.results.finalNoVerificationBody}</p>
             </div>
-          )}
+          ) : null}
         </>
       )}
 
-      <div className="final-outcome-boundary">
-        {isDemo ? (
-          <p data-testid="demo-result-scope-note">
-            {locale === "ar"
-              ? "هذه نتيجة تجريبية مبنية على بيانات نموذجية، ولا تغني عن التحقق من الجهة الرسمية."
-              : "This demo result uses sample data and does not replace confirmation with the relevant official authority."}
-          </p>
-        ) : (
-          <>
-            <p>{copy.results.finalScope}</p>
-            <p>{copy.results.finalScopeCaution}</p>
-            <strong>{copy.results.finalSafety}</strong>
-          </>
-        )}
-      </div>
+      {!isDemo && (
+        <div className="final-outcome-boundary">
+          <p>{copy.results.finalScope}</p>
+          <p>{copy.results.finalScopeCaution}</p>
+          <strong>{copy.results.finalSafety}</strong>
+        </div>
+      )}
     </section>
   );
 }
@@ -153,24 +162,19 @@ function OfficialVerificationSummary({
   locale: Locale;
   copy: Dictionary;
 }) {
-  const isDemo = useIsPortfolioDemo();
   const labels = copy.journeyLabels as Record<string, string>;
   const title = labels[item.topic_code]
     ?? localized(item.title_ar, item.title_en, locale)
     ?? item.topic_code;
   const destination = item.destinations.find((candidate) => candidate.is_primary)
     ?? item.destinations[0];
-  const whatToVerify = isDemo
-    ? null
-    : localized(item.what_to_verify_ar, item.what_to_verify_en, locale)
-      ?? (destination
-        ? localized(destination.what_to_verify_ar, destination.what_to_verify_en, locale)
-        : null)
-      ?? localized(item.limitation_summary_ar, item.limitation_summary_en, locale);
+  const whatToVerify = localized(item.what_to_verify_ar, item.what_to_verify_en, locale)
+    ?? (destination
+      ? localized(destination.what_to_verify_ar, destination.what_to_verify_en, locale)
+      : null)
+    ?? localized(item.limitation_summary_ar, item.limitation_summary_en, locale);
   const authority = destination
-    ? isDemo
-      ? (locale === "ar" ? "جهة افتراضية" : "Fictional provider")
-      : localized(destination.source.authority.name_ar, destination.source.authority.name_en, locale)
+    ? localized(destination.source.authority.name_ar, destination.source.authority.name_en, locale)
     : null;
 
   return (
@@ -179,11 +183,7 @@ function OfficialVerificationSummary({
       {whatToVerify && <p>{whatToVerify}</p>}
       {authority && (
         <p className="final-verification-authority">
-          <strong>
-            {isDemo
-              ? (locale === "ar" ? "الجهة المعروضة" : "Displayed provider")
-              : copy.results.authority}:
-          </strong>{" "}
+          <strong>{copy.results.authority}:</strong>{" "}
           {authority}
         </p>
       )}
@@ -210,11 +210,12 @@ function MissingNavigationSummary({
   copy: Dictionary;
   onAnswerMissing: (factCode: MissingNavigation["fact_code"]) => void;
 }) {
+  const { policy } = useCatalogPresentation();
   const text = copy.navigationMissing[item.fact_code];
   return (
     <li className="final-verification-item navigation-needed">
       <h5>{text.title}</h5>
-      <p>{text.body}</p>
+      <p>{policy.isPortfolioDemo ? policy.text.missingNavigationExplanation : text.body}</p>
       <button className="button secondary small" type="button" onClick={() => onAnswerMissing(item.fact_code)}>
         {copy.results.answerNow}
       </button>

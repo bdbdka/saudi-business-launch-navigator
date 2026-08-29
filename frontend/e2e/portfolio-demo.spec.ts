@@ -18,6 +18,53 @@ type ChecklistEnvelope = {
   };
 };
 
+type RenderedLink = {
+  absoluteHref: string;
+  rawHref: string;
+  text: string;
+};
+
+const verifiedRoutes = new Set<string>();
+const verifiedFragmentDestinations = new Set<string>();
+
+const forbiddenDemoText = [
+  "example.invalid",
+  "رابط تجريبي غير حكومي",
+  "جهة نموذجية غير حكومية",
+  "صفحة نموذجية غير حكومية لأغراض العرض",
+  "مسار نموذجي غير حكومي",
+  "استخدم الرابط التجريبي للتحقق",
+  "استخدم الرابط النموذجي لفهم طريقة التنقل",
+  "demo non-government link",
+  "non-government demo link",
+  "fictional non-government demo authority",
+  "non-government sample page for demonstration",
+  "non-government sample route",
+  "use the demo link to verify",
+  "use the sample link only to understand navigation",
+  "we do not need more regulatory information right now",
+  "لا نحتاج معلومات تنظيمية إضافية الآن",
+  "project requirement completion progress",
+  "تقدم إنجاز متطلبات المشروع",
+  "checklist requirements remaining",
+  "متطلبات في قائمتك",
+  "requirements that do not apply",
+  "متطلبات لا تنطبق على حالتك",
+  "your answers connected to this requirement",
+  "إجاباتك المرتبطة بهذا المتطلب",
+  "this requirement is unconditional",
+  "هذا المتطلب غير مشروط",
+] as const;
+
+const contradictoryCurrentRecordClaims = [
+  /this checklist shows the verified requirements .*official sources currently available/i,
+  /this result shows the requirements .*verified official sources currently available/i,
+  /(?:these|the current) (?:records|requirements).*(?:official government|verified official)/i,
+  /تعرض هذه القائمة المتطلبات الموثقة .*المصادر الرسمية المتاحة/,
+  /تعرض هذه النتيجة المتطلبات .*المصادر الرسمية الموثقة المتاحة/,
+  /هذه (?:السجلات|المتطلبات) الحالية.*(?:حكومية رسمية|رسمية موثقة)/,
+] as const;
+
 test.describe.configure({ mode: "serial" });
 
 test("Arabic demo flow uses the real API, preserves unknown, and supports re-entry", async ({
@@ -30,11 +77,16 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeVisible();
   await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
 
   await startActivity(page, "مطعم", "ابدأ");
   await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toHaveCount(0);
+  await expect(page.getByText(/كيف تستجيب القواعد النموذجية لإجاباتك/)).toBeVisible();
   const progress = page.getByRole("progressbar", { name: "تقدم الأسئلة" });
   await expect(progress).toHaveAttribute("aria-valuemax", "8");
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
 
   for (let question = 1; question <= 8; question += 1) {
     await expect(progress).toHaveAttribute("aria-valuenow", String(question));
@@ -77,9 +129,13 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
   await expect(page.getByText(/مسار نموذجي غير حكومي/)).toHaveCount(0);
   await expect(page.locator(".final-outcome")).toBeVisible();
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
 
   await page.getByRole("button", { name: "أجب الآن", exact: true }).first().click();
   await expect(progress).toHaveAttribute("aria-valuenow", "7");
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
   await page.locator(".answer-button").first().click();
   await page.getByRole("button", { name: "التالي", exact: true }).click();
   await expect(progress).toHaveAttribute("aria-valuenow", "8");
@@ -92,6 +148,15 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   expect(resolvedChecklist.result.needs_information).toHaveLength(0);
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(6);
   await expect(page.locator(".requirement-item.missing")).toHaveCount(0);
+  const arabicCompletionBoxes = page.getByRole("checkbox", { name: "أنجزت هذا" });
+  await expect(arabicCompletionBoxes).toHaveCount(6);
+  for (let index = 0; index < 6; index += 1) {
+    await arabicCompletionBoxes.nth(index).check();
+  }
+  await expect(page.getByRole("heading", { name: "أنهيت متابعة عناصر قائمة العرض" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "تأكد من هذه الأمور" })).toBeVisible();
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
   expectRuntimeClean(faults);
 });
 
@@ -104,6 +169,8 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.getByText("Independent portfolio demo. Not a government service.")).toBeVisible();
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
 
   const optionalAI = page.locator("details.optional-ai");
   await optionalAI.locator("summary").click();
@@ -124,10 +191,15 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
     "Failed to load resource: the server responded with a status of 503",
   );
   faults.consoleErrors.length = 0;
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
 
   await startActivity(page, "Cloud kitchen", "Start");
+  await expect(page.getByText(/how the sample rules respond to your answers/i)).toBeVisible();
   const progress = page.getByRole("progressbar", { name: "Question progress" });
   await expect(progress).toHaveAttribute("aria-valuemax", "7");
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
   for (let question = 1; question <= 7; question += 1) {
     await expect(progress).toHaveAttribute("aria-valuenow", String(question));
     await page.locator(".answer-button").first().click();
@@ -150,6 +222,15 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expect(page.getByTestId("demo-result-scope-note")).toHaveCount(1);
   await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
   await expect(page.getByText(/non-government sample route/i)).toHaveCount(0);
+  const englishCompletionBoxes = page.getByRole("checkbox", { name: "I've completed this" });
+  await expect(englishCompletionBoxes).toHaveCount(5);
+  for (let index = 0; index < 5; index += 1) {
+    await englishCompletionBoxes.nth(index).check();
+  }
+  await expect(page.getByRole("heading", { name: "Demo checklist follow-up complete" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Things to verify" })).toBeVisible();
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
   expectRuntimeClean(faults);
 });
 
@@ -159,6 +240,8 @@ test("About and mobile views keep the full bilingual demo boundary without a ban
   await page.goto("/ar");
   await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeVisible();
   await expectNoHorizontalOverflow(page);
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
 
   await page.goto("/ar/about");
 
@@ -166,12 +249,64 @@ test("About and mobile views keep the full bilingual demo boundary without a ban
   await expect(page.getByRole("heading", { name: "حول دليل تأسيس المنشآت" })).toBeVisible();
   await expect(page.getByText(/هذا مشروع مستقل غير تابع لأي جهة حكومية/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
 
   await page.goto("/en/about");
   await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "About the Business Launch Guide" })).toBeVisible();
   await expect(page.getByText(/This is an independent project/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
+  expectRuntimeClean(faults);
+});
+
+test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", async ({ page }) => {
+  const faults = collectRuntimeFaults(page);
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/ar");
+
+  await expect(page.locator("html")).toHaveAttribute("lang", "ar");
+  await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
+  await expectNoHorizontalOverflow(page);
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
+
+  await startActivity(page, "مقهى", "ابدأ");
+  const progress = page.getByRole("progressbar", { name: "تقدم الأسئلة" });
+  await expect(progress).toHaveAttribute("aria-valuemax", "7");
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
+
+  for (let question = 1; question <= 7; question += 1) {
+    await expect(progress).toHaveAttribute("aria-valuenow", String(question));
+    await expectNoHorizontalOverflow(page);
+    const answerButtons = page.locator(".answer-button");
+    await expect(answerButtons.first()).toBeVisible();
+    await answerButtons.first().click();
+    if (question < 7) {
+      await page.getByRole("button", { name: "التالي", exact: true }).click();
+    }
+  }
+
+  const responsePromise = waitForChecklist(page);
+  await page.getByRole("button", { name: "عرض قائمتي", exact: true }).click();
+  const checklist = await responsePromise;
+
+  expect(checklist.metadata).toMatchObject({
+    catalog_mode: "PORTFOLIO_DEMO_CATALOG",
+    publication_state: "SAMPLE_ONLY",
+    data_classification: "SYNTHETIC_PORTFOLIO_DEMO",
+  });
+  expect(checklist.result.applies.length).toBeGreaterThan(0);
+  await expect(page.getByRole("heading", { name: "قائمة بدء مشروعك" })).toBeVisible();
+  await expect(page.locator(".requirement-item.applicable")).toHaveCount(
+    checklist.result.applies.length,
+  );
+  await expectNoHorizontalOverflow(page);
+  await expectDemoDOMIntegrity(page);
+  await auditRenderedLinks(page);
   expectRuntimeClean(faults);
 });
 
@@ -192,6 +327,121 @@ async function waitForChecklist(page: Page): Promise<ChecklistEnvelope> {
   );
   expect(response.ok()).toBe(true);
   return (await response.json()) as ChecklistEnvelope;
+}
+
+async function expectDemoDOMIntegrity(page: Page): Promise<void> {
+  const snapshot = await page.evaluate(() => {
+    const visibleBlocks = Array.from(
+      document.body.querySelectorAll<HTMLElement>("h1, h2, h3, h4, h5, p, li, dt, dd, strong, span"),
+    )
+      .filter((element) => {
+        const style = window.getComputedStyle(element);
+        return style.display !== "none"
+          && style.visibility !== "hidden"
+          && element.getClientRects().length > 0;
+      })
+      .map((element) => element.innerText.trim())
+      .filter(Boolean);
+    return {
+      visibleText: document.body.innerText,
+      visibleBlocks,
+      repeatedCardDestinations: Array.from(
+        document.querySelectorAll<HTMLElement>(".requirement-item, .verification-item"),
+      ).filter((container) => {
+        const destinations = Array.from(container.querySelectorAll<HTMLAnchorElement>("a[href]"))
+          .map((anchor) => anchor.href);
+        return new Set(destinations).size !== destinations.length;
+      }).length,
+    };
+  });
+  const normalizedVisibleText = snapshot.visibleText.toLowerCase();
+
+  for (const forbidden of forbiddenDemoText) {
+    expect(
+      normalizedVisibleText,
+      `visible page contains forbidden demo wording: ${forbidden}`,
+    ).not.toContain(forbidden.toLowerCase());
+  }
+
+  const visibleText = snapshot.visibleBlocks.join("\n");
+  const showsSampleBoundary = /بيانات نموذجية|sample data/i.test(visibleText);
+  if (showsSampleBoundary) {
+    for (const claim of contradictoryCurrentRecordClaims) {
+      expect(visibleText, `sample-data screen contains contradictory official-record claim: ${claim}`).not.toMatch(
+        claim,
+      );
+    }
+    await expect(page.locator('[data-source-classification="governed"]')).toHaveCount(0);
+  }
+
+  await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
+  await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
+  await expect(page.locator('a[href^="data:"]')).toHaveCount(0);
+  expect(snapshot.repeatedCardDestinations, "a result card repeats the same destination").toBe(0);
+}
+
+async function auditRenderedLinks(page: Page): Promise<void> {
+  const links = await page.locator("a[href]").evaluateAll((anchors): RenderedLink[] =>
+    anchors.map((anchor) => {
+      const element = anchor as HTMLAnchorElement;
+      return {
+        absoluteHref: element.href,
+        rawHref: element.getAttribute("href") ?? "",
+        text: element.textContent?.trim() ?? "",
+      };
+    }),
+  );
+  expect(links.length, `no rendered links were found on ${page.url()}`).toBeGreaterThan(0);
+
+  const currentURL = new URL(page.url());
+  const uniqueLinks = new Map(links.map((link) => [link.absoluteHref, link]));
+  for (const link of uniqueLinks.values()) {
+    const normalizedHref = link.rawHref.trim().toLowerCase();
+    expect(normalizedHref, `unsafe link text=${JSON.stringify(link.text)}`).not.toContain(".invalid");
+    expect(normalizedHref, `unsafe link text=${JSON.stringify(link.text)}`).not.toMatch(
+      /^(?:javascript|data):/,
+    );
+
+    const target = new URL(link.absoluteHref);
+    expect(["http:", "https:"], `unsupported link scheme: ${link.absoluteHref}`).toContain(
+      target.protocol,
+    );
+    expect(target.hostname.toLowerCase(), `placeholder link: ${link.absoluteHref}`).not.toMatch(
+      /(?:^|\.)invalid$|(?:^|\.)example\.(?:com|org|net|test)$/,
+    );
+    expect(target.origin, `public demo emitted an external destination: ${link.absoluteHref}`).toBe(
+      currentURL.origin,
+    );
+
+    const route = `${target.origin}${target.pathname}${target.search}`;
+    if (!verifiedRoutes.has(route)) {
+      const response = await page.request.get(route);
+      expect(response.status(), `broken rendered link: ${link.absoluteHref}`).toBeLessThan(400);
+      verifiedRoutes.add(route);
+    }
+
+    if (!target.hash) continue;
+    const fragment = decodeURIComponent(target.hash.slice(1));
+    expect(fragment, `empty fragment link: ${link.absoluteHref}`).not.toBe("");
+    if (target.pathname === currentURL.pathname && target.search === currentURL.search) {
+      await expect(page.locator(`[id=${JSON.stringify(fragment)}]`)).toHaveCount(1);
+      continue;
+    }
+
+    if (!verifiedFragmentDestinations.has(target.href)) {
+      const probe = await page.context().newPage();
+      try {
+        const response = await probe.goto(target.href, { waitUntil: "domcontentloaded" });
+        expect(response?.status(), `broken fragment destination: ${link.absoluteHref}`).toBeLessThan(
+          400,
+        );
+        await expect(probe.locator(`[id=${JSON.stringify(fragment)}]`)).toHaveCount(1);
+      } finally {
+        await probe.close();
+      }
+      verifiedFragmentDestinations.add(target.href);
+    }
+  }
 }
 
 function collectRuntimeFaults(page: Page): {

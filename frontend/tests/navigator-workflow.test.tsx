@@ -92,6 +92,9 @@ describe("Arabic-first simplified shell", () => {
 
     await waitFor(() => expect(api.activities).toHaveBeenCalled());
     expect(screen.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeInTheDocument();
+    expect(screen.getByText("استكشف قائمة نموذجية ومسار الخطوات التالية")).toBeInTheDocument();
+    expect(screen.getByText(/تعرض نسخة المحفظة مسارات نموذجية/)).toBeInTheDocument();
+    expect(screen.queryByText(/النطاق الحالي هو المقاهي/)).not.toBeInTheDocument();
     expect(screen.queryByText(demoMetadata.warning_ar)).not.toBeInTheDocument();
     expect(screen.queryByTestId("portfolio-demo-notice")).not.toBeInTheDocument();
 
@@ -104,10 +107,37 @@ describe("Arabic-first simplified shell", () => {
     await screen.findByRole("heading", { name: "قائمة بدء مشروعك" });
     expect(screen.getAllByTestId("demo-result-scope-note")).toHaveLength(1);
     expect(screen.getByTestId("demo-result-scope-note")).toHaveTextContent(
-      "هذه نتيجة تجريبية مبنية على بيانات نموذجية، ولا تغني عن التحقق من الجهة الرسمية.",
+      "هذه نسخة تجريبية تستخدم بيانات نموذجية لعرض طريقة عمل الدليل. في الاستخدام الفعلي، ترتبط المتطلبات والخطوات بالمصادر والخدمات الرسمية المناسبة.",
     );
-    expect(screen.getAllByText("جهة افتراضية").length).toBeGreaterThan(0);
+    expect(
+      screen.getByTestId("demo-result-scope-note").compareDocumentPosition(
+        screen.getByRole("heading", { name: "هذه قائمتك بناءً على إجاباتك" }),
+      ) & Node.DOCUMENT_POSITION_FOLLOWING,
+    ).toBeTruthy();
+    expect(screen.getByText("قائمة عناصر العرض")).toBeInTheDocument();
+    expect(screen.getByText("لا تحتاج القواعد النموذجية إلى معلومات إضافية الآن.")).toBeInTheDocument();
+    expect(screen.getByRole("progressbar", { name: "تقدم إنجاز عناصر العرض" })).toBeInTheDocument();
+    const outcome = screen.getByRole("region", { name: "قائمتك ما زالت قيد المتابعة" });
+    expect(within(outcome).getByText("العناصر النموذجية المنجزة: ٠ من ٧.")).toBeInTheDocument();
+    expect(within(outcome).getByText("العناصر النموذجية المتبقية: ٧.")).toBeInTheDocument();
+    expect(screen.queryByText(/متطلبات تنطبق على مشروعك/)).not.toBeInTheDocument();
+    expect(screen.queryByText("جهة افتراضية")).not.toBeInTheDocument();
     expect(screen.queryByText("جهة رسمية اختبارية")).not.toBeInTheDocument();
+    expect(screen.queryByText(/صفحة حكومية رسمية/)).not.toBeInTheDocument();
+    expect(screen.getAllByText("هذا مثال يوضح كيف يعرض الدليل أمراً يحتاج إلى تحقق إضافي.").length)
+      .toBeGreaterThan(0);
+    for (const card of document.querySelectorAll(".requirement-item")) {
+      const destinations = [...card.querySelectorAll<HTMLAnchorElement>("a[href]")]
+        .map((link) => link.href);
+      expect(new Set(destinations).size).toBe(destinations.length);
+    }
+    const completionBoxes = screen.getAllByRole("checkbox", { name: /أنجزت هذا/ });
+    for (const checkbox of completionBoxes) await userEvent.click(checkbox);
+    expect(screen.getByRole("region", { name: "أنهيت متابعة عناصر قائمة العرض" })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Switch to English" }));
+    expect(screen.getByRole("region", { name: "Demo checklist follow-up complete" })).toBeInTheDocument();
+    expect(screen.getByText("The sample rules need no more information right now.")).toBeInTheDocument();
+    expect(screen.queryByText(/checklist requirements remaining/i)).not.toBeInTheDocument();
     expect(document.querySelector('a[href*=".invalid"]')).not.toBeInTheDocument();
   });
 

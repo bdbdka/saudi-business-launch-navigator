@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { buildAboutMetadata, buildHomeMetadata } from "@/lib/metadata";
 
@@ -58,6 +58,40 @@ describe("localized production metadata", () => {
       },
       openGraph: { locale: "en_US", alternateLocale: ["ar_SA"] },
     });
+  });
+
+  it("describes the portfolio build as a technical demo using sample data", () => {
+    vi.stubEnv("NEXT_PUBLIC_CATALOG_MODE", "PORTFOLIO_DEMO_CATALOG");
+
+    const arabic = buildHomeMetadata("ar");
+    expect(arabic).toMatchObject({
+      title: "نسخة عرض تقنية | دليل تأسيس المنشآت",
+      description:
+        "نسخة عرض تقنية لدليل تأسيس المنشآت، توضح تجربة الأسئلة والقواعد الحتمية باستخدام بيانات نموذجية.",
+      openGraph: {
+        title: "نسخة عرض تقنية | دليل تأسيس المنشآت",
+      },
+    });
+
+    const english = buildHomeMetadata("en");
+    expect(english).toMatchObject({
+      title: "Technical Demo | Saudi Business Launch Navigator",
+      description:
+        "Technical portfolio demo of a business launch navigator using deterministic rules and sample data.",
+      openGraph: {
+        title: "Technical Demo | Saudi Business Launch Navigator",
+      },
+    });
+    expect(buildAboutMetadata("ar")).toMatchObject({
+      title: "حول نسخة العرض | دليل تأسيس المنشآت",
+    });
+    expect(buildAboutMetadata("en")).toMatchObject({
+      title: "About the Demo | Saudi Business Launch Navigator",
+    });
+
+    const serialized = JSON.stringify([arabic, english]);
+    expect(serialized).not.toMatch(/verified requirements|official next steps/i);
+    expect(serialized).not.toContain("المتطلبات والخطوات الرسمية");
   });
 
   it("does not invent a deployment origin, social handle, or preview image", () => {

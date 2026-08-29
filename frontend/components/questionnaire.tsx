@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react";
 
+import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import { QuestionHelp } from "@/components/question-help";
 import type {
   Activity,
@@ -36,6 +37,7 @@ export function Questionnaire({
   onSubmit: () => void;
   onChangeActivity: () => void;
 }) {
+  const { policy } = useCatalogPresentation();
   const titleRef = useRef<HTMLLegendElement>(null);
   const question = questions[currentIndex];
 
@@ -48,7 +50,11 @@ export function Questionnaire({
     return (
       <section className="workflow-card empty-questionnaire" aria-labelledby="empty-question-title">
         <h2 id="empty-question-title">{copy.questionnaire.emptyTitle}</h2>
-        <p>{copy.questionnaire.emptyBody}</p>
+        <p>
+          {policy.isPortfolioDemo
+            ? policy.text.questionnaireEmptyBody
+            : copy.questionnaire.emptyBody}
+        </p>
         <div className="question-actions">
           <button className="button secondary" type="button" onClick={onChangeActivity}>{copy.questionnaire.changeActivity}</button>
           <button className="button primary" type="button" onClick={onSubmit} disabled={submitting}>
@@ -93,7 +99,11 @@ export function Questionnaire({
         </div>
       </div>
 
-      {currentIndex === 0 && <p className="questionnaire-intro">{copy.questionnaire.intro}</p>}
+      {currentIndex === 0 && (
+        <p className="questionnaire-intro">
+          {policy.isPortfolioDemo ? policy.text.questionnaireIntro : copy.questionnaire.intro}
+        </p>
+      )}
 
       <fieldset disabled={submitting}>
         <legend id="question-title" ref={titleRef} tabIndex={-1}>

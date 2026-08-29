@@ -73,6 +73,9 @@ describe("public frontend security configuration", () => {
     );
     expect(safeOfficialUrl("https://official.example.invalid/service")).toBeNull();
     expect(safeOfficialUrl("https://nested.official.invalid/service")).toBeNull();
+    expect(safeOfficialUrl("https://INVALID./service")).toBeNull();
+    expect(safeOfficialUrl("https://official.example.gov.sa/example.invalid")).toBeNull();
+    expect(safeOfficialUrl("https://example.invalid@official.example.gov.sa/service")).toBeNull();
     expect(safeOfficialUrl("http://official.example.gov.sa/service")).toBeNull();
     expect(safeOfficialUrl("javascript:alert(1)")).toBeNull();
     expect(safeOfficialUrl("not-a-url")).toBeNull();

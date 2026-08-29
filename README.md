@@ -86,9 +86,10 @@ model.
 
 ## Portfolio demo
 
-The bundled dataset contains fictional authorities, sources, requirements, and
-guidance. Sample links use the reserved `example.invalid` domain, and the UI
-labels demo responses so they cannot be mistaken for official evidence.
+The bundled public dataset is synthetic. Placeholder source actions are handled
+inside the demo and do not represent real government services. Synthetic
+authority and review fields remain available to demonstrate the API shape, but
+the interface suppresses them rather than presenting them as official evidence.
 
 The local demo exposes:
 
@@ -178,7 +179,11 @@ See [Testing](docs/testing.md) for test layers and expected prerequisites.
 
 `render.yaml` defines a PostgreSQL database, FastAPI service, and Next.js
 service for the synthetic portfolio demo. Automatic deployment is disabled;
-origins, trusted hosts, and secrets must be configured before a manual deploy.
+Render-generated service URLs wire the exact CORS origin, trusted API hostname,
+and browser-facing API URL. Generated database credentials remain outside Git,
+and deployment still requires a deliberate manual action. When Render supplies
+a valid commit SHA, the frontend exposes it through the nonvisual
+`X-SBLN-Build-Commit` response header for deployment verification.
 
 See [Deployment](docs/deployment.md) and [Security](docs/security.md).
 

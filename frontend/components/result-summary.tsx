@@ -1,6 +1,6 @@
 "use client";
 
-import { useIsPortfolioDemo } from "@/components/catalog-mode-context";
+import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import type { ChecklistResult } from "@/lib/api/types";
 import { formatNumber, type Dictionary, type Locale } from "@/lib/i18n";
 
@@ -17,7 +17,8 @@ export function ResultSummary({
   copy: Dictionary;
   onEdit: () => void;
 }) {
-  const isDemo = useIsPortfolioDemo();
+  const { policy } = useCatalogPresentation();
+  const isDemo = policy.isPortfolioDemo;
   const totalApplicable = result.applies.length;
   const remaining = Math.max(0, totalApplicable - completedCount);
   const unresolved = result.needs_information.length > 0;
@@ -36,9 +37,7 @@ export function ResultSummary({
       <h3>{copy.results.introTitle}</h3>
       <p>
         {isDemo
-          ? (locale === "ar"
-              ? "راجع العناصر وأكمل أي إجابة ناقصة لفهم مسار المنتج."
-              : "Review the items and complete missing answers to explore the product flow.")
+          ? policy.text.resultIntro
           : copy.results.introBody}
       </p>
 
@@ -54,17 +53,22 @@ export function ResultSummary({
         ) : (
           <p>
             {isDemo
-              ? (locale === "ar"
-                  ? "حُددت هذه القائمة بناءً على إجاباتك الحالية."
-                  : "This checklist was determined from your current answers.")
+              ? policy.text.resultDetermined
               : copy.results.checklistDetermined}
           </p>
         )}
       </div>
 
       <div className="checklist-progress-summary">
-        <h3>{copy.results.projectChecklistTitle}</h3>
-        <p className="applicable-total">{interpolate(copy.results.requirementsApplyTemplate, values)}</p>
+        <h3>
+          {isDemo ? policy.text.checklistItemsTitle : copy.results.projectChecklistTitle}
+        </h3>
+        <p className="applicable-total">
+          {interpolate(
+            isDemo ? policy.text.applicableItemsTemplate : copy.results.requirementsApplyTemplate,
+            values,
+          )}
+        </p>
         <div className="personal-progress-counts" aria-live="polite">
           <strong>{interpolate(copy.results.progressCompletedTemplate, values)}</strong>
           <span>{interpolate(copy.results.progressRemainingTemplate, values)}</span>
@@ -73,7 +77,7 @@ export function ResultSummary({
           <div
             className="personal-progress-track"
             role="progressbar"
-            aria-label={copy.results.progressBarLabel}
+            aria-label={isDemo ? policy.text.progressBarLabel : copy.results.progressBarLabel}
             aria-valuemin={0}
             aria-valuemax={totalApplicable}
             aria-valuenow={completedCount}

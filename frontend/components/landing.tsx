@@ -1,6 +1,11 @@
+import {
+  catalogPresentationPolicy,
+  configuredCatalogMode,
+} from "@/lib/catalog-presentation";
 import type { Dictionary, Locale } from "@/lib/i18n";
 
-export function Hero({ copy }: { copy: Dictionary }) {
+export function Hero({ copy, locale }: { copy: Dictionary; locale: Locale }) {
+  const policy = catalogPresentationPolicy(configuredCatalogMode(), locale);
   return (
     <section className="hero section-shell" id="home">
       <h1>{copy.heroTitle}</h1>
@@ -8,10 +13,14 @@ export function Hero({ copy }: { copy: Dictionary }) {
       <ol className="simple-stages" aria-label={copy.workflow.label}>
         <li>{copy.workflow.activity}</li>
         <li>{copy.workflow.questions}</li>
-        <li>{copy.workflow.landingChecklist}</li>
+        <li>{policy.isPortfolioDemo ? policy.text.landingChecklist : copy.workflow.landingChecklist}</li>
       </ol>
-      <p className="landing-coverage">{copy.landingCoverage}</p>
-      <p className="landing-disclaimer">{copy.landingDisclaimer}</p>
+      <p className="landing-coverage">
+        {policy.isPortfolioDemo ? policy.text.landingCoverage : copy.landingCoverage}
+      </p>
+      <p className="landing-disclaimer">
+        {policy.isPortfolioDemo ? policy.text.homepageNotice : copy.landingDisclaimer}
+      </p>
     </section>
   );
 }
@@ -25,12 +34,13 @@ export function Footer({
   locale: Locale;
   quiet?: boolean;
 }) {
+  const policy = catalogPresentationPolicy(configuredCatalogMode(), locale);
   return (
     <footer className={`site-footer${quiet ? " workflow-footer" : ""}`} id="coverage-info">
       <div className="section-shell footer-inner">
         <div className="footer-brand">
           <strong>{copy.productNameShort}</strong>
-          <p>{copy.footer.disclaimer}</p>
+          <p>{policy.isPortfolioDemo ? policy.text.footerNotice : copy.footer.disclaimer}</p>
         </div>
         <nav className="footer-nav" aria-label={copy.footer.details}>
           <a href={`/${locale}`}>{copy.footer.home}</a>

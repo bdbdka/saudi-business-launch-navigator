@@ -1,3 +1,6 @@
+"use client";
+
+import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import { OfficialLink } from "@/components/official-link";
 import type { ActionabilityItem } from "@/lib/api/types";
 import type { Dictionary, Locale } from "@/lib/i18n";
@@ -11,6 +14,7 @@ export function ActionabilityDetails({
   locale: Locale;
   copy: Dictionary;
 }) {
+  const { policy } = useCatalogPresentation();
   const ordered = [...items].sort((left, right) => left.display_order - right.display_order);
   const starts = ordered.filter(
     (item) => item.detail_type === "official_start" && item.value.kind === "official_destination",
@@ -22,6 +26,14 @@ export function ActionabilityDetails({
 
   if (starts.length === 0 && prerequisites.length === 0 && documents.length === 0 && fees.length === 0 && steps.length === 0) {
     return null;
+  }
+
+  if (policy.isPortfolioDemo) {
+    return (
+      <div className="actionability-details" data-presentation="synthetic-demo">
+        <p>{policy.text.actionabilityExplanation}</p>
+      </div>
+    );
   }
 
   return (

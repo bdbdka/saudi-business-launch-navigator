@@ -12,8 +12,10 @@ WORKDIR /app
 
 ARG NEXT_PUBLIC_API_BASE_URL
 ARG NEXT_PUBLIC_CATALOG_MODE
+ARG RENDER_GIT_COMMIT
 ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL} \
     NEXT_PUBLIC_CATALOG_MODE=${NEXT_PUBLIC_CATALOG_MODE} \
+    SBLN_FRONTEND_BUILD_COMMIT=${RENDER_GIT_COMMIT} \
     NEXT_TELEMETRY_DISABLED=1
 
 COPY --from=dependencies /app/node_modules ./node_modules
@@ -21,6 +23,18 @@ COPY . .
 
 RUN test -n "$NEXT_PUBLIC_API_BASE_URL" \
     && test "$NEXT_PUBLIC_CATALOG_MODE" = "GOVERNED_REAL_CATALOG" -o "$NEXT_PUBLIC_CATALOG_MODE" = "PORTFOLIO_DEMO_CATALOG" \
+    && if [ -n "$SBLN_FRONTEND_BUILD_COMMIT" ]; then \
+         if [ "${#SBLN_FRONTEND_BUILD_COMMIT}" -ne 40 ]; then \
+           printf 'Invalid Render Git commit length.\n' >&2; \
+           exit 1; \
+         fi; \
+         case "$SBLN_FRONTEND_BUILD_COMMIT" in \
+           *[!0-9a-fA-F]*) printf 'Invalid Render Git commit characters.\n' >&2; exit 1 ;; \
+         esac; \
+         printf 'Building frontend commit %s\n' "$SBLN_FRONTEND_BUILD_COMMIT"; \
+       else \
+         printf 'Building frontend without Render commit metadata.\n'; \
+       fi \
     && npm run build
 
 

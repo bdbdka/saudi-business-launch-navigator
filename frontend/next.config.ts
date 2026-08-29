@@ -1,5 +1,7 @@
 import type { NextConfig } from "next";
 
+import { buildCommitHeader } from "./lib/build-identity";
+
 export type FrontendCatalogMode = "GOVERNED_REAL_CATALOG" | "PORTFOLIO_DEMO_CATALOG";
 
 export function catalogMode(
@@ -82,6 +84,7 @@ const nextConfig: NextConfig = {
     ? { NEXT_PUBLIC_CATALOG_MODE: validatedCatalogMode }
     : undefined,
   async headers() {
+    const commitHeader = buildCommitHeader();
     return [
       {
         source: "/(.*)",
@@ -93,6 +96,7 @@ const nextConfig: NextConfig = {
             key: "Permissions-Policy",
             value: "camera=(), microphone=(), geolocation=(), payment=()",
           },
+          ...(commitHeader ? [commitHeader] : []),
         ],
       },
     ];

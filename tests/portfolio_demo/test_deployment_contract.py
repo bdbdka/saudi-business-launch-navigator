@@ -41,6 +41,9 @@ def test_frontend_image_requires_public_api_origin_and_runs_non_root() -> None:
     assert "npm ci" in dockerfile
     assert 'test -n "$NEXT_PUBLIC_API_BASE_URL"' in dockerfile
     assert "NEXT_PUBLIC_CATALOG_MODE" in dockerfile
+    assert "ARG RENDER_GIT_COMMIT" in dockerfile
+    assert "SBLN_FRONTEND_BUILD_COMMIT=${RENDER_GIT_COMMIT}" in dockerfile
+    assert "Building frontend commit %s" in dockerfile
     assert "process.env.PORT" in dockerfile
     assert "/app/.next/standalone" in dockerfile
     assert "USER node" in dockerfile

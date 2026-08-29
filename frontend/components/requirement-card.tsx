@@ -1,7 +1,7 @@
 "use client";
 
 import { ActionabilityDetails } from "@/components/actionability-details";
-import { useIsPortfolioDemo } from "@/components/catalog-mode-context";
+import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import { OfficialLink } from "@/components/official-link";
 import { ProgressCheckbox } from "@/components/progress-checkbox";
 import type { ChecklistItem, QuestionFactCode, SourceTrace } from "@/lib/api/types";
@@ -26,29 +26,18 @@ export function RequirementCard({
   onCompletionChange?: (completed: boolean) => void;
   onAnswerMissing: (factCode: QuestionFactCode) => void;
 }) {
-  const isDemo = useIsPortfolioDemo();
+  const { policy } = useCatalogPresentation();
   const title = locale === "ar"
     ? item.project_arabic_title
     : item.project_english_title ?? item.project_arabic_title;
   const description = locale === "ar"
     ? item.project_arabic_description
     : item.project_english_description ?? item.project_arabic_description;
-  const authority = isDemo
-    ? (locale === "ar" ? "جهة افتراضية" : "Fictional provider")
-    : locale === "ar"
-      ? item.authority.name_ar
-      : item.authority.name_en ?? item.authority.name_ar;
+  const authority = locale === "ar"
+    ? item.authority.name_ar
+    : item.authority.name_en ?? item.authority.name_ar;
   const primary = item.sources.find((source) => source.source_role === "primary") ?? item.sources[0];
   const reasons = copy.reasonLabels as Record<string, string>;
-  const authorityLabel = isDemo
-    ? (locale === "ar" ? "الجهة المعروضة" : "Displayed provider")
-    : copy.results.authority;
-  const sourceLabel = isDemo
-    ? (locale === "ar" ? "معلومة المصدر" : "Source information")
-    : copy.results.sourceTitle;
-  const reviewedLabel = isDemo
-    ? (locale === "ar" ? "تاريخ الإعداد" : "Prepared")
-    : copy.results.reviewed;
 
   return (
     <article className={`requirement-item ${variant}${completed ? " user-completed" : ""}`}>
@@ -72,24 +61,45 @@ export function RequirementCard({
 
       {primary && (
         <div className="official-source-block">
-          <p className="authority-line"><strong>{authorityLabel}:</strong> {authority}</p>
+          {policy.showAuthorityRows && (
+            <p className="authority-line">
+              <strong>{copy.results.authority}:</strong> {authority}
+            </p>
+          )}
           <OfficialLink
             url={primary.canonical_url}
             label={copy.results.officialSource}
             opensNewWindow={copy.results.opensNewWindow}
-            unavailableLabel={copy.results.sourceUnavailable}
+            unavailableLabel={policy.isPortfolioDemo
+              ? policy.text.demoLinkUnavailable
+              : copy.results.sourceUnavailable}
           />
         </div>
       )}
 
-      {(item.evaluated_facts.length > 0 || primary || item.sources.length > 1) && (
+      {(item.evaluated_facts.length > 0
+        || (policy.showSourceMetadata && (primary || item.sources.length > 1))) && (
         <details className="requirement-details">
           <summary>{copy.results.moreDetails}</summary>
           <div className="requirement-details-content">
-            <p className="requirement-reason"><strong>{copy.results.why}</strong> {humanReason(item, locale, copy, reasons)}</p>
+            <p className="requirement-reason">
+              <strong>{copy.results.why}</strong>{" "}
+              {humanReason(
+                item,
+                locale,
+                copy,
+                reasons,
+                policy.isPortfolioDemo
+                  ? policy.text.unconditionalItem
+                  : copy.results.unconditional,
+                policy.isPortfolioDemo,
+              )}
+            </p>
             {item.evaluated_facts.length > 0 && (
               <div>
-                <strong>{copy.results.answersUsed}</strong>
+                <strong>
+                  {policy.isPortfolioDemo ? policy.text.answersUsed : copy.results.answersUsed}
+                </strong>
                 <ul className="fact-trace-list">
                   {item.evaluated_facts.map((fact) => (
                     <li key={fact.fact_code}>
@@ -101,14 +111,14 @@ export function RequirementCard({
               </div>
             )}
 
-            {primary && (
+            {primary && policy.showSourceMetadata && (
               <dl className="source-metadata">
-                <div><dt>{sourceLabel}</dt><dd>{sourceTitle(primary, locale)}</dd></div>
-                <div><dt>{reviewedLabel}</dt><dd>{formatVerifiedDate(primary, locale)}</dd></div>
+                <div><dt>{copy.results.sourceTitle}</dt><dd>{sourceTitle(primary, locale)}</dd></div>
+                <div><dt>{copy.results.reviewed}</dt><dd>{formatVerifiedDate(primary, locale)}</dd></div>
               </dl>
             )}
 
-            {item.sources.length > 1 && (
+            {policy.showSourceMetadata && item.sources.length > 1 && (
               <ul className="additional-source-list" aria-label={copy.results.additionalSources}>
                 {item.sources.slice(1).map((source) => (
                   <li key={source.requirement_source_id}>
@@ -139,6 +149,8 @@ function humanReason(
   locale: Locale,
   copy: Dictionary,
   reasons: Record<string, string>,
+  unconditionalFallback: string,
+  isPortfolioDemo: boolean,
 ): string {
   if (item.evaluated_facts.length === 1) {
     const fact = item.evaluated_facts[0];
@@ -150,7 +162,10 @@ function humanReason(
       return `${copy.results.answerUsed}: «${answerLabel(fact, locale)}» — ${question}`;
     }
   }
-  return reasons[item.reason_code] ?? copy.results.unconditional;
+  if (isPortfolioDemo && item.reason_code === "UNCONDITIONAL_CURRENT_REQUIREMENT") {
+    return unconditionalFallback;
+  }
+  return reasons[item.reason_code] ?? unconditionalFallback;
 }
 
 function sourceTitle(source: SourceTrace, locale: Locale): string {

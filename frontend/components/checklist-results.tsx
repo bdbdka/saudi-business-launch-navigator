@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { useIsPortfolioDemo } from "@/components/catalog-mode-context";
+import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import { CoverageNotice } from "@/components/coverage-notice";
 import { FinalOutcome } from "@/components/final-outcome";
 import { JourneyGuidanceList } from "@/components/journey-guidance";
@@ -26,7 +26,8 @@ export function ChecklistResults({
   onEdit: () => void;
   onRestart: () => void;
 }) {
-  const isDemo = useIsPortfolioDemo();
+  const { policy } = useCatalogPresentation();
+  const isDemo = policy.isPortfolioDemo;
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
@@ -62,6 +63,11 @@ export function ChecklistResults({
         </div>
       </div>
 
+      {isDemo && (
+        <p className="demo-result-scope-note" data-testid="demo-result-scope-note">
+          {policy.text.resultScopeNote}
+        </p>
+      )}
       <ResultSummary
         result={result}
         completedCount={completedCount}
@@ -84,14 +90,14 @@ export function ChecklistResults({
           <h3 id="required-title">{copy.results.required}</h3>
           <p>
             {isDemo
-              ? (locale === "ar"
-                  ? "تظهر هذه العناصر وفق إجاباتك الحالية."
-                  : "These items follow from your current answers.")
+              ? policy.text.applicableGroupExplanation
               : copy.results.requiredBody}
           </p>
         </div>
         {result.applies.length === 0 ? (
-          <p className="empty-state compact">{copy.results.noRequired}</p>
+          <p className="empty-state compact">
+            {isDemo ? policy.text.noApplicableItems : copy.results.noRequired}
+          </p>
         ) : (
           <div className="requirement-list">
             {result.applies.map((item) => (
@@ -116,15 +122,15 @@ export function ChecklistResults({
           {result.needs_information.length > 0 && (
             <p>
               {isDemo
-                ? (locale === "ar"
-                    ? "أكمل الإجابات الناقصة حتى تظهر النتيجة الحتمية."
-                    : "Complete missing answers to resolve the deterministic result.")
+                ? policy.text.missingGroupExplanation
                 : copy.results.missingBody}
             </p>
           )}
         </div>
         {result.needs_information.length === 0 ? (
-          <p className="empty-state compact">{copy.results.noMissing}</p>
+          <p className="empty-state compact">
+            {isDemo ? policy.text.noMissingInformation : copy.results.noMissing}
+          </p>
         ) : (
           <div className="requirement-list">
             {result.needs_information.map((item) => (
@@ -146,9 +152,7 @@ export function ChecklistResults({
           <h3 id="verification-title">{copy.results.verify}</h3>
           <p>
             {isDemo
-              ? (locale === "ar"
-                  ? "هذه الأمور خارج نسبة الإنجاز وتحتاج إلى مراجعة منفصلة."
-                  : "These items are outside completion progress and need separate review.")
+              ? policy.text.verificationGroupExplanation
               : copy.results.verifyBody}
           </p>
         </div>
@@ -164,7 +168,7 @@ export function ChecklistResults({
       {result.does_not_apply.length > 0 && (
         <details className="not-applicable-group">
           <summary>
-            {copy.results.notRequired} ({formatNumber(result.does_not_apply.length, locale)})
+            {isDemo ? policy.text.notApplicableItemsTitle : copy.results.notRequired} ({formatNumber(result.does_not_apply.length, locale)})
           </summary>
           <div className="requirement-list secondary-list">
             {result.does_not_apply.map((item) => (

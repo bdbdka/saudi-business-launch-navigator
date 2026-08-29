@@ -1,6 +1,6 @@
 "use client";
 
-import { useIsPortfolioDemo } from "@/components/catalog-mode-context";
+import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import { OfficialLink } from "@/components/official-link";
 import type { ChecklistResult, JourneyGuidance, QuestionFactCode } from "@/lib/api/types";
 import type { Dictionary, Locale } from "@/lib/i18n";
@@ -30,10 +30,15 @@ export function JourneyGuidanceList({
   copy: Dictionary;
   onAnswerMissing: (factCode: QuestionFactCode) => void;
 }) {
+  const { policy } = useCatalogPresentation();
   const visibleGuidance = visibleJourneyGuidance(guidance, missingNavigation);
 
   if (missingNavigation.length === 0 && visibleGuidance.length === 0) {
-    return <p className="empty-state compact">{copy.results.noVerification}</p>;
+    return (
+      <p className="empty-state compact">
+        {policy.isPortfolioDemo ? policy.text.noVerificationItems : copy.results.noVerification}
+      </p>
+    );
   }
 
   return (
@@ -62,11 +67,12 @@ function MissingNavigationItem({
   copy: Dictionary;
   onAnswerMissing: (factCode: QuestionFactCode) => void;
 }) {
+  const { policy } = useCatalogPresentation();
   const text = copy.navigationMissing[item.fact_code];
   return (
     <article className="verification-item navigation-missing">
       <h4>{text.title}</h4>
-      <p>{text.body}</p>
+      <p>{policy.isPortfolioDemo ? policy.text.missingNavigationExplanation : text.body}</p>
       <button className="text-button" type="button" onClick={() => onAnswerMissing(item.fact_code)}>
         {copy.results.answerNow}
       </button>
@@ -83,14 +89,17 @@ function JourneyItem({
   locale: Locale;
   copy: Dictionary;
 }) {
-  const isDemo = useIsPortfolioDemo();
+  const { policy } = useCatalogPresentation();
+  const isDemo = policy.isPortfolioDemo;
   const labels = copy.journeyLabels as Record<string, string>;
   const title = labels[item.topic_code]
     ?? (locale === "ar" ? item.title_ar : item.title_en ?? item.title_ar);
   const confirmation = item.coverage_state === "REQUIRES_OFFICIAL_CONFIRMATION";
-  const summary = isDemo || confirmation
-    ? null
-    : localized(item.verified_summary_ar, item.verified_summary_en, locale);
+  const summary = isDemo
+    ? policy.text.journeyExplanation
+    : confirmation
+      ? null
+      : localized(item.verified_summary_ar, item.verified_summary_en, locale);
   const limitation = isDemo
     ? null
     : localized(item.limitation_summary_ar, item.limitation_summary_en, locale);
@@ -116,7 +125,7 @@ function JourneyItem({
               locale,
             );
         const authority = isDemo
-          ? (locale === "ar" ? "جهة افتراضية" : "Fictional provider")
+          ? null
           : localized(
               destination.source.authority.name_ar,
               destination.source.authority.name_en,
@@ -128,11 +137,7 @@ function JourneyItem({
             {destinationCheck && destinationCheck !== whatToVerify && <p>{destinationCheck}</p>}
             {authority && (
               <p className="authority-line">
-                <strong>
-                  {isDemo
-                    ? (locale === "ar" ? "الجهة المعروضة" : "Displayed provider")
-                    : copy.results.authority}:
-                </strong>{" "}
+                <strong>{copy.results.authority}:</strong>{" "}
                 {authority}
               </p>
             )}
@@ -140,7 +145,7 @@ function JourneyItem({
               url={destination.source.official_url}
               label={copy.results.openOfficialGuidance}
               opensNewWindow={copy.results.opensNewWindow}
-              unavailableLabel={copy.results.sourceUnavailable}
+              unavailableLabel={isDemo ? policy.text.demoLinkUnavailable : copy.results.sourceUnavailable}
             />
           </div>
         );

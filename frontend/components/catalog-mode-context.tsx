@@ -3,13 +3,22 @@
 import { createContext, useContext } from "react";
 
 import type { CatalogBoundary } from "@/lib/api/types";
-import { configuredCatalogMode } from "@/lib/catalog-presentation";
+import {
+  catalogPresentationPolicy,
+  configuredCatalogMode,
+  type CatalogPresentationPolicy,
+} from "@/lib/catalog-presentation";
 import type { Locale } from "@/lib/i18n";
 
 const CatalogPresentationContext = createContext<{
   metadata: CatalogBoundary | null;
   locale: Locale;
-}>({ metadata: null, locale: "ar" });
+  policy: CatalogPresentationPolicy;
+}>({
+  metadata: null,
+  locale: "ar",
+  policy: catalogPresentationPolicy(configuredCatalogMode(), "ar"),
+});
 
 export function CatalogPresentationProvider({
   metadata,
@@ -20,8 +29,11 @@ export function CatalogPresentationProvider({
   locale: Locale;
   children: React.ReactNode;
 }) {
+  const mode = metadata?.catalog_mode ?? configuredCatalogMode();
   return (
-    <CatalogPresentationContext.Provider value={{ metadata, locale }}>
+    <CatalogPresentationContext.Provider
+      value={{ metadata, locale, policy: catalogPresentationPolicy(mode, locale) }}
+    >
       {children}
     </CatalogPresentationContext.Provider>
   );
@@ -32,9 +44,5 @@ export function useCatalogPresentation() {
 }
 
 export function useIsPortfolioDemo(): boolean {
-  const { metadata } = useCatalogPresentation();
-  return (
-    metadata?.catalog_mode === "PORTFOLIO_DEMO_CATALOG"
-    || (metadata === null && configuredCatalogMode() === "PORTFOLIO_DEMO_CATALOG")
-  );
+  return useCatalogPresentation().policy.isPortfolioDemo;
 }
