@@ -48,8 +48,6 @@ export type CatalogPresentationPolicy = {
     finalMissingInformationTitle: string;
     finalFollowUpCompleteTitle: string;
     demoDataLink: string;
-    demoLinkUnavailable: string;
-    demoSourceLabel: string;
     metadata: {
       homeTitle: string;
       homeDescription: string;
@@ -60,7 +58,6 @@ export type CatalogPresentationPolicy = {
 };
 
 export type PresentedSourceLink =
-  | { kind: "demo-information"; href: string; label: string }
   | { kind: "governed-external"; href: string }
   | { kind: "unavailable" };
 
@@ -76,7 +73,7 @@ const portfolioDemoText: Record<Locale, CatalogPresentationPolicy["text"]> = {
     questionnaireEmptyBody:
       "يمكنك إنشاء قائمة العرض مباشرة لأن العناصر النموذجية لا تحتاج إلى إجابات إضافية.",
     resultScopeNote:
-      "هذه نسخة تجريبية تستخدم بيانات نموذجية لعرض طريقة عمل الدليل. في الاستخدام الفعلي، ترتبط المتطلبات والخطوات بالمصادر والخدمات الرسمية المناسبة.",
+      "تعرض هذه القائمة بيانات نموذجية لشرح آلية الدليل. مرجع النشاط الرسمي أدناه مستقل ولا يثبت أن عناصر القائمة النموذجية متطلبات منشورة.",
     resultIntro: "راجع العناصر وأكمل أي إجابة ناقصة لفهم مسار المنتج.",
     resultDetermined: "حُددت هذه القائمة بناءً على إجاباتك الحالية.",
     applicableGroupExplanation: "تظهر هذه العناصر وفق إجاباتك الحالية.",
@@ -109,8 +106,6 @@ const portfolioDemoText: Record<Locale, CatalogPresentationPolicy["text"]> = {
       "أكملت متابعة العناصر الحالية، لكن قائمة العرض لم تُحدد بالكامل بعد",
     finalFollowUpCompleteTitle: "أنهيت متابعة عناصر قائمة العرض",
     demoDataLink: "عن بيانات النسخة التجريبية",
-    demoLinkUnavailable: "لا تتوفر صفحة توضيحية لهذا العنصر النموذجي.",
-    demoSourceLabel: "بيانات مصدر نموذجية",
     metadata: {
       homeTitle: "نسخة عرض تقنية | دليل تأسيس المنشآت",
       homeDescription:
@@ -131,7 +126,7 @@ const portfolioDemoText: Record<Locale, CatalogPresentationPolicy["text"]> = {
     questionnaireEmptyBody:
       "You can build the demo checklist directly because the sample items need no extra answers.",
     resultScopeNote:
-      "This portfolio demo uses sample data to demonstrate how the guide works. In a production catalog, requirements and next steps are linked to the relevant official sources and services.",
+      "This checklist uses synthetic data to demonstrate the guide. The official activity reference below is separate and does not make the sample checklist items published requirements.",
     resultIntro: "Review the items and complete missing answers to explore the product flow.",
     resultDetermined: "This checklist was determined from your current answers.",
     applicableGroupExplanation: "These items follow from your current answers.",
@@ -166,8 +161,6 @@ const portfolioDemoText: Record<Locale, CatalogPresentationPolicy["text"]> = {
       "You have followed up on the current items, but the demo checklist is not fully determined yet",
     finalFollowUpCompleteTitle: "Demo checklist follow-up complete",
     demoDataLink: "About the demo data",
-    demoLinkUnavailable: "No demo-data information page is available for this sample item.",
-    demoSourceLabel: "Sample source data",
     metadata: {
       homeTitle: "Technical Demo | Saudi Business Launch Navigator",
       homeDescription:
@@ -227,18 +220,9 @@ export function catalogPresentationPolicy(
 export function presentSourceLink(
   value: string,
   mode: PublicCatalogMode | null,
-  locale: Locale,
 ): PresentedSourceLink {
   const parsed = parseSafeHttpsUrl(value);
   if (!parsed) return { kind: "unavailable" };
-
-  if (mode === "PORTFOLIO_DEMO_CATALOG") {
-    return {
-      kind: "demo-information",
-      href: `/${locale}/about#methodology`,
-      label: portfolioDemoText[locale].demoDataLink,
-    };
-  }
 
   if (mode !== "GOVERNED_REAL_CATALOG") return { kind: "unavailable" };
   if (hasInvalidMarker(parsed)) return { kind: "unavailable" };

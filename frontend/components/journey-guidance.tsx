@@ -107,6 +107,15 @@ function JourneyItem({
     ? null
     : localized(item.what_to_verify_ar, item.what_to_verify_en, locale);
 
+  if (isDemo) {
+    return (
+      <article className="verification-item" data-presentation="synthetic-demo">
+        <h4>{title}</h4>
+        <p>{policy.text.journeyExplanation}</p>
+      </article>
+    );
+  }
+
   return (
     <article className="verification-item">
       <h4>{title}</h4>
@@ -114,19 +123,13 @@ function JourneyItem({
       {limitation && <p className="guidance-limitation">{limitation}</p>}
       {whatToVerify && <p className="verification-action">{whatToVerify}</p>}
       {item.destinations.map((destination) => {
-        const guidance = isDemo
-          ? null
-          : localized(destination.guidance_ar, destination.guidance_en, locale);
-        const destinationCheck = isDemo
-          ? null
-          : localized(
+        const guidance = localized(destination.guidance_ar, destination.guidance_en, locale);
+        const destinationCheck = localized(
               destination.what_to_verify_ar,
               destination.what_to_verify_en,
               locale,
             );
-        const authority = isDemo
-          ? null
-          : localized(
+        const authority = localized(
               destination.source.authority.name_ar,
               destination.source.authority.name_en,
               locale,
@@ -145,7 +148,7 @@ function JourneyItem({
               url={destination.source.official_url}
               label={copy.results.openOfficialGuidance}
               opensNewWindow={copy.results.opensNewWindow}
-              unavailableLabel={isDemo ? policy.text.demoLinkUnavailable : copy.results.sourceUnavailable}
+              unavailableLabel={copy.results.sourceUnavailable}
             />
           </div>
         );

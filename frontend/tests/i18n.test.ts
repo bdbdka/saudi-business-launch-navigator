@@ -15,6 +15,8 @@ describe("locale dictionaries", () => {
     expect(copy.results.notRequired).toBe("متطلبات لا تنطبق على حالتك");
     expect(copy.results.verify).toBe("تأكد من هذه الأمور");
     expect(copy.results.introTitle).toBe("هذه قائمتك بناءً على إجاباتك");
+    expect(copy.results.activityReferenceTitle).toBe("المصدر الرسمي للنشاط");
+    expect(copy.results.openActivityReference).toBe("فتح صفحة النشاط الرسمية");
     expect(copy.questionnaire.unknown).toBe("لست متأكدًا");
     expect(copy.workflow.checklist).toBe("شاهد ما تحتاج إليه");
     expect(copy.results.what).toBe("ما المطلوب؟");
@@ -32,6 +34,8 @@ describe("locale dictionaries", () => {
     expect(copy.productNameShort).toBe("Business Launch Guide");
     expect(copy.questionnaire.evaluate).toBe("See my checklist");
     expect(copy.results.introTitle).toBe("Your checklist based on your answers");
+    expect(copy.results.activityReferenceTitle).toBe("Official activity reference");
+    expect(copy.results.openActivityReference).toBe("Open official activity page");
     expect(copy.coverage.title).toBe("Useful guidance, but not complete regulatory coverage");
     expect(copy.results.source).toBe("What is the source?");
     expect(copy.about.sourcesPrinciple).toContain("do not rely on the demo dataset");

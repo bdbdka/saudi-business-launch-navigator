@@ -59,7 +59,7 @@ export function RequirementCard({
         <ActionabilityDetails items={item.actionability} locale={locale} copy={copy} />
       )}
 
-      {primary && (
+      {primary && policy.isGovernedCatalog && (
         <div className="official-source-block">
           {policy.showAuthorityRows && (
             <p className="authority-line">
@@ -70,9 +70,7 @@ export function RequirementCard({
             url={primary.canonical_url}
             label={copy.results.officialSource}
             opensNewWindow={copy.results.opensNewWindow}
-            unavailableLabel={policy.isPortfolioDemo
-              ? policy.text.demoLinkUnavailable
-              : copy.results.sourceUnavailable}
+            unavailableLabel={copy.results.sourceUnavailable}
           />
         </div>
       )}

@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import { ActivityOfficialReference } from "@/components/activity-official-reference";
 import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import { CoverageNotice } from "@/components/coverage-notice";
 import { FinalOutcome } from "@/components/final-outcome";
@@ -74,6 +75,11 @@ export function ChecklistResults({
         locale={locale}
         copy={copy}
         onEdit={onEdit}
+      />
+      <ActivityOfficialReference
+        activityCode={result.activity.code}
+        locale={locale}
+        copy={copy}
       />
       <FinalOutcome
         result={result}

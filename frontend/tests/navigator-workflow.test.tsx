@@ -107,7 +107,7 @@ describe("Arabic-first simplified shell", () => {
     await screen.findByRole("heading", { name: "قائمة بدء مشروعك" });
     expect(screen.getAllByTestId("demo-result-scope-note")).toHaveLength(1);
     expect(screen.getByTestId("demo-result-scope-note")).toHaveTextContent(
-      "هذه نسخة تجريبية تستخدم بيانات نموذجية لعرض طريقة عمل الدليل. في الاستخدام الفعلي، ترتبط المتطلبات والخطوات بالمصادر والخدمات الرسمية المناسبة.",
+      "تعرض هذه القائمة بيانات نموذجية لشرح آلية الدليل. مرجع النشاط الرسمي أدناه مستقل ولا يثبت أن عناصر القائمة النموذجية متطلبات منشورة.",
     );
     expect(
       screen.getByTestId("demo-result-scope-note").compareDocumentPosition(
@@ -115,6 +115,23 @@ describe("Arabic-first simplified shell", () => {
       ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.getByText("قائمة عناصر العرض")).toBeInTheDocument();
+    const activityReference = screen.getByTestId("activity-official-reference");
+    expect(within(activityReference).getByRole("heading", { name: "المصدر الرسمي للنشاط" })).toBeInTheDocument();
+    expect(activityReference).toHaveTextContent("وزارة البلديات والإسكان — منصة بلدي");
+    const officialActivityLink = within(activityReference).getByRole("link", {
+      name: /فتح صفحة النشاط الرسمية/,
+    });
+    expect(officialActivityLink).toHaveAttribute(
+      "href",
+      "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1770",
+    );
+    expect(officialActivityLink).toHaveAttribute("target", "_blank");
+    expect(officialActivityLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(screen.getAllByRole("link", { name: "عن بيانات النسخة التجريبية" })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "عن بيانات النسخة التجريبية" })).toHaveAttribute(
+      "href",
+      "/ar/about#methodology",
+    );
     expect(screen.getByText("لا تحتاج القواعد النموذجية إلى معلومات إضافية الآن.")).toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "تقدم إنجاز عناصر العرض" })).toBeInTheDocument();
     const outcome = screen.getByRole("region", { name: "قائمتك ما زالت قيد المتابعة" });
@@ -126,17 +143,24 @@ describe("Arabic-first simplified shell", () => {
     expect(screen.queryByText(/صفحة حكومية رسمية/)).not.toBeInTheDocument();
     expect(screen.getAllByText("هذا مثال يوضح كيف يعرض الدليل أمراً يحتاج إلى تحقق إضافي.").length)
       .toBeGreaterThan(0);
-    for (const card of document.querySelectorAll(".requirement-item")) {
-      const destinations = [...card.querySelectorAll<HTMLAnchorElement>("a[href]")]
-        .map((link) => link.href);
-      expect(new Set(destinations).size).toBe(destinations.length);
-    }
+    expect(document.querySelectorAll(".requirement-item a[href]")).toHaveLength(0);
+    expect(document.querySelectorAll(".actionability-details a[href]")).toHaveLength(0);
+    expect(document.querySelectorAll(".verification-list a[href]")).toHaveLength(0);
+    expect(document.querySelectorAll('a[href*=".invalid"]')).toHaveLength(0);
+    expect(document.querySelectorAll('a[href*="official.example.gov.sa"]')).toHaveLength(0);
+    expect(document.querySelectorAll('a[href^="https://"]')).toHaveLength(1);
     const completionBoxes = screen.getAllByRole("checkbox", { name: /أنجزت هذا/ });
     for (const checkbox of completionBoxes) await userEvent.click(checkbox);
     expect(screen.getByRole("region", { name: "أنهيت متابعة عناصر قائمة العرض" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Switch to English" }));
     expect(screen.getByRole("region", { name: "Demo checklist follow-up complete" })).toBeInTheDocument();
     expect(screen.getByText("The sample rules need no more information right now.")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Official activity reference" })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Open official activity page/ })).toHaveAttribute(
+      "href",
+      "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1770",
+    );
+    expect(screen.getAllByRole("link", { name: "About the demo data" })).toHaveLength(1);
     expect(screen.queryByText(/checklist requirements remaining/i)).not.toBeInTheDocument();
     expect(document.querySelector('a[href*=".invalid"]')).not.toBeInTheDocument();
   });

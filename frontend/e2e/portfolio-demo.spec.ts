@@ -22,10 +22,18 @@ type RenderedLink = {
   absoluteHref: string;
   rawHref: string;
   text: string;
+  target: string | null;
+  rel: string | null;
+  sourceClassification: string | null;
 };
 
 const verifiedRoutes = new Set<string>();
 const verifiedFragmentDestinations = new Set<string>();
+const officialActivityReferenceURLs = new Set([
+  "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1770",
+  "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1319",
+  "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=859397",
+]);
 
 const forbiddenDemoText = [
   "example.invalid",
@@ -119,12 +127,14 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expect(page.getByRole("heading", { name: "قائمة بدء مشروعك" })).toBeVisible();
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(5);
   await expect(page.locator(".requirement-item.missing")).toHaveCount(1);
+  await expectActivityReference(
+    page,
+    "ar",
+    "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1319",
+  );
   await expect(
     page.getByText("حدود التغطية · اعرف المزيد", { exact: true }),
   ).toBeVisible();
-  await expect(
-    page.getByRole("link", { name: "عن بيانات النسخة التجريبية" }).first(),
-  ).toHaveAttribute("href", "/ar/about#methodology");
   await expect(page.getByTestId("demo-result-scope-note")).toHaveCount(1);
   await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
   await expect(page.getByText(/مسار نموذجي غير حكومي/)).toHaveCount(0);
@@ -148,6 +158,11 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   expect(resolvedChecklist.result.needs_information).toHaveLength(0);
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(6);
   await expect(page.locator(".requirement-item.missing")).toHaveCount(0);
+  await expectActivityReference(
+    page,
+    "ar",
+    "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1319",
+  );
   const arabicCompletionBoxes = page.getByRole("checkbox", { name: "أنجزت هذا" });
   await expect(arabicCompletionBoxes).toHaveCount(6);
   for (let index = 0; index < 6; index += 1) {
@@ -216,9 +231,11 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   expect(checklist.result.needs_information).toHaveLength(0);
   await expect(page.getByRole("heading", { name: "Your business launch checklist" })).toBeVisible();
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(5);
-  await expect(
-    page.getByRole("link", { name: "About the demo data" }).first(),
-  ).toHaveAttribute("href", "/en/about#methodology");
+  await expectActivityReference(
+    page,
+    "en",
+    "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=859397",
+  );
   await expect(page.getByTestId("demo-result-scope-note")).toHaveCount(1);
   await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
   await expect(page.getByText(/non-government sample route/i)).toHaveCount(0);
@@ -304,6 +321,11 @@ test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", 
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(
     checklist.result.applies.length,
   );
+  await expectActivityReference(
+    page,
+    "ar",
+    "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1770",
+  );
   await expectNoHorizontalOverflow(page);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
@@ -377,7 +399,54 @@ async function expectDemoDOMIntegrity(page: Page): Promise<void> {
   await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
   await expect(page.locator('a[href^="javascript:"]')).toHaveCount(0);
   await expect(page.locator('a[href^="data:"]')).toHaveCount(0);
+  await expect(page.locator('[data-source-classification="synthetic-demo"]')).toHaveCount(0);
   expect(snapshot.repeatedCardDestinations, "a result card repeats the same destination").toBe(0);
+}
+
+async function expectActivityReference(
+  page: Page,
+  locale: "ar" | "en",
+  expectedURL: string,
+): Promise<void> {
+  const reference = page.getByTestId("activity-official-reference");
+  await expect(reference).toHaveCount(1);
+  await expect(
+    reference.getByRole("heading", {
+      name: locale === "ar" ? "المصدر الرسمي للنشاط" : "Official activity reference",
+    }),
+  ).toBeVisible();
+  await expect(reference).toContainText(
+    locale === "ar"
+      ? "يمكنك مراجعة صفحة النشاط الرسمية في منصة بلدي للاطلاع على وصف النشاط والمتطلبات المنشورة للنشاط."
+      : "You can review the official Balady activity page for the activity description and published activity requirements.",
+  );
+  await expect(reference).toContainText(
+    locale === "ar"
+      ? "وزارة البلديات والإسكان — منصة بلدي"
+      : "Ministry of Municipalities and Housing — Balady",
+  );
+
+  const officialLink = reference.getByRole("link", {
+    name: locale === "ar" ? /فتح صفحة النشاط الرسمية/ : /Open official activity page/,
+  });
+  await expect(officialLink).toHaveAttribute("href", expectedURL);
+  await expect(officialLink).toHaveAttribute("target", "_blank");
+  await expect(officialLink).toHaveAttribute("rel", "noopener noreferrer");
+  await expect(officialLink).toHaveAttribute(
+    "data-source-classification",
+    "official-activity-reference",
+  );
+
+  const methodology = page.getByRole("link", {
+    name: locale === "ar" ? "عن بيانات النسخة التجريبية" : "About the demo data",
+  });
+  await expect(methodology).toHaveCount(1);
+  await expect(methodology).toHaveAttribute("href", `/${locale}/about#methodology`);
+  await expect(page.locator(".requirement-item a[href]")).toHaveCount(0);
+  await expect(page.locator(".actionability-details a[href]")).toHaveCount(0);
+  await expect(page.locator(".verification-list a[href]")).toHaveCount(0);
+  await expect(page.locator(".final-outcome a[href]")).toHaveCount(0);
+  await expect(page.locator('[data-source-classification="official-activity-reference"]')).toHaveCount(1);
 }
 
 async function auditRenderedLinks(page: Page): Promise<void> {
@@ -388,6 +457,9 @@ async function auditRenderedLinks(page: Page): Promise<void> {
         absoluteHref: element.href,
         rawHref: element.getAttribute("href") ?? "",
         text: element.textContent?.trim() ?? "",
+        target: element.getAttribute("target"),
+        rel: element.getAttribute("rel"),
+        sourceClassification: element.getAttribute("data-source-classification"),
       };
     }),
   );
@@ -409,9 +481,18 @@ async function auditRenderedLinks(page: Page): Promise<void> {
     expect(target.hostname.toLowerCase(), `placeholder link: ${link.absoluteHref}`).not.toMatch(
       /(?:^|\.)invalid$|(?:^|\.)example\.(?:com|org|net|test)$/,
     );
-    expect(target.origin, `public demo emitted an external destination: ${link.absoluteHref}`).toBe(
-      currentURL.origin,
-    );
+    if (target.origin !== currentURL.origin) {
+      expect(
+        officialActivityReferenceURLs.has(link.absoluteHref),
+        `public demo emitted an unapproved external destination: ${link.absoluteHref}`,
+      ).toBe(true);
+      expect(target.protocol).toBe("https:");
+      expect(target.hostname).toBe("services.balady.gov.sa");
+      expect(link.target).toBe("_blank");
+      expect(link.rel?.split(/\s+/)).toEqual(expect.arrayContaining(["noopener", "noreferrer"]));
+      expect(link.sourceClassification).toBe("official-activity-reference");
+      continue;
+    }
 
     const route = `${target.origin}${target.pathname}${target.search}`;
     if (!verifiedRoutes.has(route)) {

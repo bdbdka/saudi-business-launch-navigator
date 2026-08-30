@@ -47,6 +47,8 @@ describe("localized public information pages", () => {
     const methodology = screen.getByRole("heading", { name: "منهجية الدليل" }).closest("section")!;
     expect(methodology).toHaveAttribute("id", "methodology");
     expect(methodology).toHaveTextContent("بيانات نموذجية فقط");
+    expect(methodology).toHaveTextContent("صفحات الأنشطة الرسمية في منصة بلدي مراجع على مستوى النشاط فقط");
+    expect(methodology).toHaveTextContent("لا تعني أن عناصر القائمة النموذجية متطلبات سعودية منشورة");
     expect(methodology).toHaveTextContent("النص العربي الرسمي المرجع الأساسي");
     expect(methodology).toHaveTextContent("لا تنشر نسخة العرض البحث التنظيمي الخاص المحكوم");
 
@@ -56,9 +58,10 @@ describe("localized public information pages", () => {
     expect(privacy).toHaveTextContent("ذاكرة الصفحة فقط");
     expect(privacy).toHaveTextContent("لا يستخدم هذا الإصدار التخزين المحلي أو ملفات تعريف الارتباط");
     expect(privacy).toHaveTextContent("يُرسل النص عند اختيارك الإرسال فقط");
-    expect(privacy).toHaveTextContent("سياسة خصوصية الجهة");
+    expect(privacy).toHaveTextContent("موقع منصة بلدي في نافذة جديدة");
 
     expect(container).toHaveTextContent("هذا مشروع مستقل غير تابع لأي جهة حكومية ولا يمثلها");
+    expect(container).toHaveTextContent("ليس إثباتًا لمصدر عناصر القائمة النموذجية");
     expect(container).toHaveTextContent("لا تعتمد على بيانات نسخة العرض");
     expect(container).toHaveTextContent("لا يقدم استشارة قانونية");
     expect(container).toHaveTextContent("لا يحسب وضعك الضريبي تلقائيًا");
@@ -90,11 +93,13 @@ describe("localized public information pages", () => {
     expect(screen.getByRole("link", { name: "Back to the guide" })).toHaveAttribute("href", "/en");
     expect(container).toHaveTextContent("not a government service");
     expect(container).toHaveTextContent("not affiliated with or representative of any government authority");
+    expect(container).toHaveTextContent("not provenance for the synthetic checklist items");
+    expect(container).toHaveTextContent("activity-level references only");
     expect(container).toHaveTextContent("does not publish the private governed regulatory research");
     expect(container).toHaveTextContent("does not issue licences for you, guarantee approval");
   });
 
-  it("links the minimal footer to the localized About, Methodology, and Privacy sections", () => {
+  it("keeps the minimal footer separate from the single results methodology link", () => {
     render(<AboutPage locale="ar" copy={getDictionary("ar")} />);
 
     const footer = screen.getByRole("contentinfo");
@@ -107,10 +112,7 @@ describe("localized public information pages", () => {
       "href",
       "/ar/about",
     );
-    expect(within(footerNavigation).getByRole("link", { name: "المنهجية" })).toHaveAttribute(
-      "href",
-      "/ar/about#methodology",
-    );
+    expect(within(footerNavigation).queryByRole("link", { name: "المنهجية" })).not.toBeInTheDocument();
     expect(within(footerNavigation).getByRole("link", { name: "الخصوصية" })).toHaveAttribute(
       "href",
       "/ar/about#privacy",

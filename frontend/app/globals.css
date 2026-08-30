@@ -357,6 +357,28 @@ input:focus-visible,
 .final-outcome-boundary p { margin: 6px 0 0; color: var(--muted); font-size: 0.84rem; line-height: 1.7; }
 .final-outcome-boundary strong { display: block; margin-top: 12px; color: var(--ink); font-size: 0.88rem; line-height: 1.7; }
 .demo-result-scope-note { max-width: 720px; margin: 18px 0 0; padding: 13px 16px; border-inline-start: 3px solid var(--green); background: var(--green-soft); color: var(--muted); font-size: 0.88rem; line-height: 1.75; }
+.activity-official-reference {
+  margin: 0 0 26px;
+  padding: 4px 0 22px;
+  border-block-end: 1px solid var(--line);
+}
+.activity-official-reference h3 { margin: 0; font-size: 1.05rem; }
+.activity-official-reference > p { max-width: 650px; margin: 7px 0 0; color: var(--muted); line-height: 1.65; }
+.activity-official-reference .activity-reference-name { color: var(--ink); font-weight: 800; }
+.activity-official-reference .activity-reference-authority { color: var(--ink); font-size: 0.84rem; }
+.activity-reference-links { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 24px; margin-top: 8px; }
+.activity-reference-link,
+.demo-methodology-link {
+  display: inline-flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 7px;
+  color: var(--green);
+  font-size: 0.86rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.demo-methodology-link { color: var(--muted); font-weight: 700; }
 .coverage-notice { margin: 14px 0 46px; color: var(--muted); font-size: 0.82rem; }
 .coverage-notice summary { min-height: 44px; color: var(--warning); cursor: pointer; font-weight: 750; }
 .coverage-notice details > p, .coverage-notice details > strong, .coverage-notice details > ul { margin-inline-start: 20px; }

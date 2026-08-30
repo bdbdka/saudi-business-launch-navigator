@@ -86,10 +86,13 @@ model.
 
 ## Portfolio demo
 
-The bundled public dataset is synthetic. Placeholder source actions are handled
-inside the demo and do not represent real government services. Synthetic
-authority and review fields remain available to demonstrate the API shape, but
-the interface suppresses them rather than presenting them as official evidence.
+The bundled public catalog and checklist entries are synthetic. The results
+page provides a real Balady activity-reference link for each of the three
+supported activities, but that activity-level reference is not presented as
+evidence for the synthetic checklist items. Synthetic authority, review, and
+source fields remain available to demonstrate the API shape while the interface
+suppresses their external destinations and makes no claim of direct official
+provenance. No placeholder external links are exposed in the interface.
 
 The local demo exposes:
 

@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CatalogPresentationProvider } from "@/components/catalog-mode-context";
@@ -70,12 +70,12 @@ describe("portfolio demo presentation boundary", () => {
     expect(policy.isGovernedCatalog).toBe(false);
     expect(policy.showAuthorityRows).toBe(false);
     expect(policy.showSourceMetadata).toBe(false);
-    expect(presentSourceLink("https://www.example.gov.sa/service", null, "en")).toEqual({
+    expect(presentSourceLink("https://www.example.gov.sa/service", null)).toEqual({
       kind: "unavailable",
     });
   });
 
-  it("routes every reserved demo hostname to the localized methodology explanation", () => {
+  it("suppresses synthetic source destinations instead of turning them into evidence links", () => {
     const { rerender } = render(
       <CatalogPresentationProvider metadata={demoMetadata} locale="en">
         <OfficialLink
@@ -87,10 +87,8 @@ describe("portfolio demo presentation boundary", () => {
       </CatalogPresentationProvider>,
     );
 
-    const link = screen.getByRole("link", { name: "About the demo data" });
-    expect(link).toHaveAttribute("href", "/en/about#methodology");
-    expect(link).not.toHaveAttribute("target");
-    expect(link).toHaveAttribute("data-source-classification", "synthetic-demo");
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.queryByText("Official source")).not.toBeInTheDocument();
     expect(document.querySelector('a[href*=".invalid"]')).not.toBeInTheDocument();
 
@@ -104,10 +102,8 @@ describe("portfolio demo presentation boundary", () => {
         />
       </CatalogPresentationProvider>,
     );
-    expect(screen.getByRole("link", { name: "عن بيانات النسخة التجريبية" })).toHaveAttribute(
-      "href",
-      "/ar/about#methodology",
-    );
+    expect(screen.getByText("غير متاح")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(document.querySelector('a[href*=".invalid"]')).not.toBeInTheDocument();
 
     rerender(
@@ -120,10 +116,8 @@ describe("portfolio demo presentation boundary", () => {
         />
       </CatalogPresentationProvider>,
     );
-    expect(screen.getByRole("link", { name: "About the demo data" })).toHaveAttribute(
-      "href",
-      "/en/about#methodology",
-    );
+    expect(screen.getByText("Unavailable")).toBeInTheDocument();
+    expect(screen.queryByRole("link")).not.toBeInTheDocument();
     expect(screen.queryByText("Official source")).not.toBeInTheDocument();
   });
 
@@ -271,5 +265,42 @@ describe("portfolio demo presentation boundary", () => {
       screen.getByText("This sample item needs no additional question in this path."),
     ).toBeInTheDocument();
     expect(screen.queryByText(/This requirement is unconditional/i)).not.toBeInTheDocument();
+  });
+
+  it("shows one activity reference and one methodology link without card-level destinations", () => {
+    const response = checklistResponse(
+      activities[2],
+      { applies: 2, doesNotApply: 1, needs: 1 },
+    );
+    render(
+      <CatalogPresentationProvider metadata={demoMetadata} locale="en">
+        <ChecklistResults
+          result={response.result}
+          locale="en"
+          copy={getDictionary("en")}
+          aiExplanation={[]}
+          onAnswerMissing={vi.fn()}
+          onEdit={vi.fn()}
+          onRestart={vi.fn()}
+        />
+      </CatalogPresentationProvider>,
+    );
+
+    const reference = screen.getByTestId("activity-official-reference");
+    expect(within(reference).getByRole("link", { name: /Open official activity page/ })).toHaveAttribute(
+      "href",
+      "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1319",
+    );
+    expect(screen.getAllByRole("link", { name: "About the demo data" })).toHaveLength(1);
+    expect(screen.getByRole("link", { name: "About the demo data" })).toHaveAttribute(
+      "href",
+      "/en/about#methodology",
+    );
+    expect(document.querySelectorAll('.requirement-item a[href]')).toHaveLength(0);
+    expect(document.querySelectorAll('.actionability-details a[href]')).toHaveLength(0);
+    expect(document.querySelectorAll('.verification-list a[href]')).toHaveLength(0);
+    expect(document.querySelectorAll('.final-outcome a[href]')).toHaveLength(0);
+    expect(document.querySelectorAll('a[href*=".invalid"]')).toHaveLength(0);
+    expect(document.querySelectorAll('a[href*="official.example.gov.sa"]')).toHaveLength(0);
   });
 });

@@ -21,19 +21,8 @@ export function OfficialLink({
   unavailableLabel: string;
   prominent?: boolean;
 }) {
-  const { locale, policy } = useCatalogPresentation();
-  const presented = presentSourceLink(url, policy.mode, locale);
-  if (presented.kind === "demo-information") {
-    return (
-      <a
-        className={prominent ? "official-service-link" : "official-source-link"}
-        href={presented.href}
-        data-source-classification="synthetic-demo"
-      >
-        {presented.label}
-      </a>
-    );
-  }
+  const { policy } = useCatalogPresentation();
+  const presented = presentSourceLink(url, policy.mode);
 
   if (presented.kind === "unavailable") {
     return <span className="source-unavailable">{unavailableLabel}</span>;

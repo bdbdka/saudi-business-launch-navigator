@@ -45,7 +45,6 @@ export function Footer({
         <nav className="footer-nav" aria-label={copy.footer.details}>
           <a href={`/${locale}`}>{copy.footer.home}</a>
           <a href={`/${locale}/about`}>{copy.footer.about}</a>
-          <a href={`/${locale}/about#methodology`}>{copy.footer.methodology}</a>
           <a href={`/${locale}/about#privacy`}>{copy.footer.privacy}</a>
         </nav>
       </div>
