@@ -187,7 +187,12 @@ describe("Arabic-first simplified shell", () => {
         "يدعم الإصدار الحالي المقاهي والمطاعم والمطابخ السحابية، مع الرياض وجدة كسياق تجريبي فقط. لا يسأل هذا الإصدار عن المدينة ولا يقارن قواعد المدن، ويمكن توسيعه كلما توفرت تغطية متحققة.",
       ),
     ).toBeInTheDocument();
-    expect(await screen.findByRole("button", { name: /مقهى/ })).toBeInTheDocument();
+    const coffeeShop = await screen.findByRole("button", { name: "مقهى" });
+    expect(coffeeShop).toBeInTheDocument();
+    expect(coffeeShop).not.toHaveAttribute("aria-describedby");
+    expect(document.querySelector(".activity-description")).not.toBeInTheDocument();
+    expect(document.querySelector(".activity-secondary-name")).not.toBeInTheDocument();
+    expect(document.querySelector(".activity-guidance-label")).not.toBeInTheDocument();
     expect(screen.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeInTheDocument();
     await waitFor(() => expect(document.documentElement).toHaveAttribute("dir", "rtl"));
     expect(document.documentElement).toHaveAttribute("lang", "ar");

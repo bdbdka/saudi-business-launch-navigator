@@ -74,6 +74,11 @@ export function Questionnaire({
     ?? (locale === "ar" ? question.question_ar : question.question_en);
   const answerLabels = question.answer_labels;
   const unknownLabel = locale === "ar" ? question.unknown_label_ar : question.unknown_label_en;
+  const hasShortBooleanChoices = question.data_type !== "enum" && answerLabels
+    ? (locale === "ar"
+      ? answerLabels.true_ar === copy.questionnaire.yes && answerLabels.false_ar === copy.questionnaire.no
+      : answerLabels.true_en === copy.questionnaire.yes && answerLabels.false_en === copy.questionnaire.no)
+    : false;
   const progressText = `${copy.questionnaire.question} ${formatNumber(currentIndex + 1, locale)} ${copy.questionnaire.of} ${formatNumber(questions.length, locale)}`;
   const selectedAnswer = selectedAnswerLabel(question, answer, hasAnswer, locale);
 
@@ -124,7 +129,7 @@ export function Questionnaire({
             {questionText}
           </QuestionHelp>
         </legend>
-        <div className="answer-grid">
+        <div className={`answer-grid ${hasShortBooleanChoices ? "short-options" : "long-options"}`}>
           {question.data_type === "enum" ? (
             question.options.map((option) => (
               <AnswerButton

@@ -117,7 +117,11 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
     await expect(progress).toHaveAttribute("aria-valuenow", String(question));
     const answerButtons = page.locator(".answer-button");
     await expect(answerButtons.first()).toBeVisible();
-    await (question === 7 ? answerButtons.last() : answerButtons.first()).click();
+    if (question === 3) {
+      await chooseAndVerifyCompactOption(page, true);
+    } else {
+      await (question === 7 ? answerButtons.last() : answerButtons.first()).click();
+    }
     if (question < 8) {
       await page.getByRole("button", { name: "التالي", exact: true }).click();
     }
@@ -329,7 +333,11 @@ test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", 
     await expectNoHorizontalOverflow(page);
     const answerButtons = page.locator(".answer-button");
     await expect(answerButtons.first()).toBeVisible();
-    await answerButtons.first().click();
+    if (question === 3) {
+      await chooseAndVerifyCompactOption(page, false);
+    } else {
+      await answerButtons.first().click();
+    }
     if (question < 7) {
       await page.getByRole("button", { name: "التالي", exact: true }).click();
     }
@@ -365,12 +373,69 @@ async function startActivity(
   activityName: string,
   startLabel: string,
 ): Promise<void> {
+  await expect(page.locator(".activity-description, .activity-secondary-name, .activity-guidance-label")).toHaveCount(0);
+  const activityChoices = page.locator(".activity-choice");
+  await expect(activityChoices).toHaveCount(3);
+  const activityBoxes = await activityChoices.evaluateAll((elements) => elements.map((element) => {
+    const box = element.getBoundingClientRect();
+    return { height: box.height, width: box.width };
+  }));
+  expect(activityBoxes.every((box) => box.height <= 80 && box.width < 240)).toBe(true);
+
   const card = page.locator(".activity-choice").filter({
     has: page.getByText(activityName, { exact: true }),
   });
   await expect(card).toHaveCount(1);
   await card.click();
   await page.getByRole("button", { name: startLabel, exact: true }).click();
+}
+
+async function chooseAndVerifyCompactOption(page: Page, verifyHover: boolean): Promise<void> {
+  const grid = page.locator(".answer-grid.short-options");
+  await expect(grid).toHaveCount(1);
+  const options = grid.locator(".answer-button");
+  await expect(options).toHaveCount(3);
+
+  const boxes = await options.evaluateAll((elements) => elements.map((element) => {
+    const box = element.getBoundingClientRect();
+    return { height: box.height, width: box.width };
+  }));
+  expect(boxes.every((box) => box.height <= 54 && box.width < 200)).toBe(true);
+
+  const first = options.first();
+  if (verifyHover) {
+    const defaultStyle = await first.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { background: style.backgroundColor, border: style.borderColor };
+    });
+    await first.hover();
+    await page.waitForTimeout(180);
+    const hoverStyle = await first.evaluate((element) => {
+      const style = getComputedStyle(element);
+      return { background: style.backgroundColor, border: style.borderColor };
+    });
+    expect(hoverStyle).not.toEqual(defaultStyle);
+    expect(hoverStyle.background).not.toBe("rgb(11, 90, 71)");
+    expect(hoverStyle.background).not.toBe("rgb(7, 69, 54)");
+  }
+
+  await first.focus();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await expect(first).toBeFocused();
+  const focusStyle = await first.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(focusStyle.outlineStyle).toBe("solid");
+  expect(Number.parseFloat(focusStyle.outlineWidth)).toBeGreaterThanOrEqual(3);
+
+  await first.click();
+  await expect(first).toHaveAttribute("aria-pressed", "true");
+  await expect(first.locator(".answer-selected-mark")).toBeVisible();
+  const selectedBackground = await first.evaluate((element) => getComputedStyle(element).backgroundColor);
+  expect(selectedBackground).not.toBe("rgb(11, 90, 71)");
+  expect(selectedBackground).not.toBe("rgb(7, 69, 54)");
 }
 
 async function expectResultsOrder(page: Page): Promise<void> {

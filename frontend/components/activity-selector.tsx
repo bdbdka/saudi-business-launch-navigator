@@ -59,27 +59,18 @@ export function ActivitySelector({
             {supportedActivities.map((activity) => {
               const active = activity.code === selectedCode;
               const primaryName = locale === "ar" ? activity.name_ar : activity.name_en;
-              const secondaryName = locale === "ar" ? activity.name_en : activity.name_ar;
               return (
                 <button
                   className={`activity-choice${active ? " selected" : ""}`}
                   type="button"
                   key={activity.code}
                   aria-label={primaryName}
-                  aria-describedby={`activity-${activity.code}-description`}
                   aria-pressed={active}
                   onClick={() => setSelectedCode(activity.code)}
                 >
                   <span className="activity-choice-heading">
                     <strong>{primaryName}</strong>
                     {active && <span className="activity-selected-mark">✓ {copy.activities.selected}</span>}
-                  </span>
-                  <span className="activity-secondary-name" lang={locale === "ar" ? "en" : "ar"} dir={locale === "ar" ? "ltr" : "rtl"}>
-                    {secondaryName}
-                  </span>
-                  <span className="activity-guidance-label">{copy.activities.guidanceLabel}</span>
-                  <span className="activity-description" id={`activity-${activity.code}-description`}>
-                    {copy.activities.descriptions[activity.code]}
                   </span>
                 </button>
               );
