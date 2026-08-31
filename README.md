@@ -2,18 +2,19 @@
 
 ## دليل تأسيس المنشآت في السعودية
 
-Starting a business can involve information spread across several government
-services and regulatory sources. The Saudi Business Launch Navigator turns that
-journey into a short, understandable flow built around the user's own business
-situation.
+An Arabic-first, bilingual business-launch guidance platform for Saudi Arabia.
 
-The Arabic-first, bilingual experience currently supports coffee shops,
-restaurants, and cloud kitchens. A user chooses an activity, answers only the
-questions that can affect the result, and receives an organized set of steps,
-missing information, and topics to review.
+Business-launch information can span several official services and change with
+the business situation. The Navigator turns a short set of structured answers
+into validated facts, evaluates deterministic rules, and presents personalized
+launch guidance without asking a language model to decide applicability.
 
-Riyadh and Jeddah are pilot context only. This version does not ask for a city
-or evaluate city-specific regulatory differences.
+**Pilot activities:** coffee shops · restaurants · cloud kitchens<br>
+**Research scope:** Riyadh and Jeddah
+
+Other Saudi cities have not yet been fully reviewed. This scope neither assumes
+that city rules differ nor claims that nationwide equivalence has been verified;
+future expansion follows official-source research and review.
 
 > The public checklist is an explicitly synthetic portfolio dataset. It
 > demonstrates the product safely and does not present its sample items as
@@ -28,10 +29,13 @@ or evaluate city-specific regulatory differences.
 Render's free services may need a short cold-start period before the first
 request completes.
 
+![Arabic-first Saudi Business Launch Navigator homepage](docs/images/arabic-homepage.png)
+
 ## How the experience works
 
 1. Choose the activity closest to the planned business.
-2. Answer one plain-language question at a time with Yes, No, or Not sure.
+2. Answer one plain-language question at a time by choosing the clearest option
+   or Not sure.
 3. Review steps that follow from the answers.
 4. Complete any missing information without the system treating unknown as no.
 5. Review separate launch topics and the exact Balady reference for the chosen
@@ -43,12 +47,31 @@ cannot decide requirements, applicability, fees, deadlines, or legal outcomes.
 
 ## Product tour
 
-The live demo is the most current product tour. It includes the Arabic and
-English home pages, activity cards, seven- or eight-question guided paths,
-action-oriented results, progress tracking, mobile layouts, and a detailed
-About and methodology page. Portfolio screenshots and video material are kept
-for the final presentation package rather than duplicated as stale interface
-captures here.
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/activity-selection.png" alt="Arabic activity selection for a coffee shop, restaurant, or cloud kitchen">
+      <br><sub>Simple activity selection</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/images/arabic-question-help.png" alt="Arabic questionnaire with an open plain-language explanation">
+      <br><sub>Questions with beginner-friendly help</sub>
+    </td>
+  </tr>
+  <tr>
+    <td width="50%">
+      <img src="docs/images/arabic-results-overview.png" alt="Arabic personalized launch-guidance result">
+      <br><sub>Action-oriented, explainable results</sub>
+    </td>
+    <td width="50%">
+      <img src="docs/images/arabic-official-reference.png" alt="Official Balady activity reference in the Arabic results">
+      <br><sub>A clearly separated official activity reference</sub>
+    </td>
+  </tr>
+</table>
+
+Additional desktop, mobile, Arabic, and English captures are available in
+[`docs/images/`](docs/images/).
 
 ## Trust and source methodology
 
@@ -77,17 +100,21 @@ See [Methodology](docs/methodology.md) for the decision and provenance model.
 
 ## Architecture
 
-```text
-Next.js browser interface
-          |
-          v
-      FastAPI API  ------>  Optional OpenAI API
-          |                 structured input/explanation only
-          v
-Deterministic Python rules
-          |
-          v
-      PostgreSQL
+```mermaid
+flowchart LR
+    User[User] --> Web[Next.js bilingual frontend]
+    Web --> API[FastAPI API]
+    API --> Validation[Pydantic validation]
+    Validation --> Rules[Deterministic Python and SQL rules]
+    Rules --> Database[(PostgreSQL)]
+
+    Governance[Official-source governance] --> Catalog[Reviewed structured catalog]
+    Catalog --> Database
+    Demo[Synthetic portfolio-demo catalog] --> Database
+
+    API -. optional text interpretation .-> OpenAI[OpenAI]
+    OpenAI -. structured facts and clarification only .-> Validation
+    OpenAI --- Boundary[AI never decides applicability]
 ```
 
 The public release is production-shaped while remaining safely isolated from
@@ -95,7 +122,8 @@ private governed regulatory research. Catalog mode, database identity, schema,
 and dataset identity are checked before traffic is served.
 
 See [Architecture](docs/architecture.md) for component boundaries and data
-flow.
+flow, or read the [technical case study](docs/case-study.md) for the design
+decisions and release evidence in one place.
 
 ## Technology
 
@@ -175,12 +203,13 @@ Frontend:
 ```bash
 cd frontend
 npm ci
+npx playwright install chromium
 npm run lint
 npm run typecheck
 npm test
-npm run build
-PLAYWRIGHT_CHROME_PATH="/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
-  SBLN_E2E_BASE_URL=http://127.0.0.1:13002 npm run test:e2e
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18002 \
+  NEXT_PUBLIC_CATALOG_MODE=PORTFOLIO_DEMO_CATALOG npm run build
+SBLN_E2E_BASE_URL=http://127.0.0.1:13002 npm run test:e2e
 npm audit
 ```
 

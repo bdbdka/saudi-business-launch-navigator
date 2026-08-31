@@ -8,14 +8,18 @@ synthetic records and do not contact Saudi government services.
 
 The backend suite covers:
 
-- three-valued condition evaluation and nested Boolean conditions;
-- questionnaire reachability and unknown-answer behavior;
-- checklist grouping, reasons, sources, navigation, and actionability;
-- Pydantic request and response contracts;
-- FastAPI error mapping, request limits, CORS, trusted hosts, and health checks;
-- PostgreSQL constraints, migrations, catalog identity, and read-only roles;
-- optional OpenAI adapter validation and fail-safe behavior; and
-- negative paths for malformed, stale, incomplete, or inconsistent state.
+- synthetic catalog identity, fingerprints, and private-data exclusion;
+- questionnaire reachability and unknown-answer behavior through the real
+  deterministic service;
+- checklist, navigation-guidance, and actionability behavior in the public
+  demo scenarios;
+- the production guided API flow without an OpenAI key;
+- PostgreSQL migrations, exact seed idempotency, catalog identity, and
+  restricted read-only roles;
+- fail-closed startup, request-size limits, production configuration, and
+  deployment contracts; and
+- negative paths for altered database structure, identity mismatch, elevated
+  privileges, and governed-data contamination.
 
 Run:
 
@@ -56,7 +60,8 @@ npm ci
 npm run lint
 npm run typecheck
 npm test
-npm run build
+NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:18002 \
+  NEXT_PUBLIC_CATALOG_MODE=PORTFOLIO_DEMO_CATALOG npm run build
 ```
 
 ## Browser end-to-end flow

@@ -40,19 +40,22 @@ must not be silently promoted into a verified checklist item.
 ## Minimum decision-changing questions
 
 Question count is not a measure of completeness. The questionnaire asks only
-for facts that can change or resolve the result of a verified conditional
-requirement.
+for facts that can change or resolve a conditional result or select genuinely
+different launch-navigation guidance.
 
 - An unconditional requirement creates no question.
 - A conditional requirement references a governed fact.
-- A question is shown only when its fact is reachable and relevant.
+- Applicability questions are shown only when their facts are reachable and
+  relevant to a condition.
+- Navigation questions can organize separate review guidance but are never
+  passed into requirement applicability evaluation.
 - Dependent questions can be skipped when an earlier answer makes them
   unnecessary.
 - Unsupported, descriptive, or duplicate questions are not added simply to
   make the questionnaire longer.
 
 This approach reduces effort for the user while keeping every question tied to
-a concrete decision in the rules engine.
+a concrete change in either the deterministic result or the guidance shown.
 
 ## Unknown is not false
 
@@ -88,11 +91,12 @@ not repeated city or activity copies.
 
 ## City and activity scope
 
-The current product supports coffee shops, restaurants, and cloud kitchens.
-Its stated pilot context is Riyadh and Jeddah, but the public demonstration
-does not collect or evaluate city and implements no city-specific logic. A
-future city-specific rule would require direct official evidence and additional
-reviewed modeling before it could affect a checklist.
+The current product supports coffee shops, restaurants, and cloud kitchens,
+with research focused on Riyadh and Jeddah. Other Saudi cities have not yet
+been fully reviewed. This does not assume that city rules differ or claim that
+nationwide equivalence has been verified. A future expansion or city-specific
+rule would require official-source research, verification, and reviewed
+modeling before it could affect a checklist.
 
 Site-dependent applicability is represented through questionnaire facts and
 conditions rather than separate copies of a requirement.
