@@ -9,6 +9,7 @@ import type {
   QuestionFactCode,
 } from "@/lib/api/types";
 import { formatNumber, type Dictionary, type Locale } from "@/lib/i18n";
+import { getQuestionGuidance } from "@/lib/question-guidance";
 
 export function Questionnaire({
   activity,
@@ -68,18 +69,21 @@ export function Questionnaire({
   const hasAnswer = Object.prototype.hasOwnProperty.call(answers, question.fact_code);
   const answer = answers[question.fact_code];
   const last = currentIndex === questions.length - 1;
-  const questionText = locale === "ar" ? question.question_ar : question.question_en;
-  const helpText = locale === "ar" ? question.help_text_ar : question.help_text_en;
+  const helpContent = getQuestionGuidance(question.fact_code, locale);
+  const questionText = helpContent.prompt
+    ?? (locale === "ar" ? question.question_ar : question.question_en);
   const answerLabels = question.answer_labels;
   const unknownLabel = locale === "ar" ? question.unknown_label_ar : question.unknown_label_en;
-  const progressText = `${formatNumber(currentIndex + 1, locale)} ${copy.questionnaire.of} ${formatNumber(questions.length, locale)}`;
+  const progressText = `${copy.questionnaire.question} ${formatNumber(currentIndex + 1, locale)} ${copy.questionnaire.of} ${formatNumber(questions.length, locale)}`;
+  const selectedAnswer = selectedAnswerLabel(question, answer, hasAnswer, locale);
 
   return (
     <section className="question-card" aria-labelledby="question-title" aria-busy={submitting}>
+      <h1 className="sr-only">{copy.workflow.questions} — {activityName}</h1>
       <div className="question-topline">
         <p className="activity-context"><span>{copy.workflow.questions}</span><strong>{activityName}</strong></p>
         <button className="text-button change-activity" type="button" onClick={onChangeActivity} disabled={submitting}>
-          <span aria-hidden="true">←</span>
+          <span aria-hidden="true">{locale === "ar" ? "→" : "←"}</span>
           <span>{copy.questionnaire.changeActivity}</span>
         </button>
       </div>
@@ -107,7 +111,16 @@ export function Questionnaire({
 
       <fieldset disabled={submitting}>
         <legend id="question-title" ref={titleRef} tabIndex={-1}>
-          <QuestionHelp key={question.fact_code} text={helpText} label={copy.questionnaire.helpLabel}>
+          <QuestionHelp
+            key={question.fact_code}
+            content={helpContent}
+            label={copy.questionnaire.helpLabel}
+            labels={{
+              meaning: copy.questionnaire.meaningLabel,
+              why: copy.questionnaire.whyLabel,
+              example: copy.questionnaire.exampleLabel,
+            }}
+          >
             {questionText}
           </QuestionHelp>
         </legend>
@@ -137,6 +150,11 @@ export function Questionnaire({
           ) : null}
           <AnswerButton label={unknownLabel} selected={hasAnswer && answer === null} onClick={() => onAnswer(question.fact_code, null)} />
         </div>
+        <p className="selected-answer-feedback" aria-live="polite">
+          {selectedAnswer
+            ? copy.questionnaire.selectedTemplate.replace("{answer}", selectedAnswer)
+            : "\u00a0"}
+        </p>
       </fieldset>
 
       <div className="question-actions">
@@ -149,6 +167,31 @@ export function Questionnaire({
       </div>
     </section>
   );
+}
+
+function selectedAnswerLabel(
+  question: Question,
+  answer: boolean | string | null | undefined,
+  hasAnswer: boolean,
+  locale: Locale,
+): string | null {
+  if (!hasAnswer) return null;
+  if (answer === null) {
+    return locale === "ar" ? question.unknown_label_ar : question.unknown_label_en;
+  }
+  if (typeof answer === "string") {
+    const option = question.options.find((item) => item.value === answer);
+    return option ? (locale === "ar" ? option.label_ar : option.label_en) : null;
+  }
+  if (!question.answer_labels) return null;
+  if (answer) {
+    return locale === "ar"
+      ? question.answer_labels.true_ar
+      : question.answer_labels.true_en;
+  }
+  return locale === "ar"
+    ? question.answer_labels.false_ar
+    : question.answer_labels.false_en;
 }
 
 function AnswerButton({

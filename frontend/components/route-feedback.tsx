@@ -2,9 +2,12 @@ import type { Locale } from "@/lib/i18n";
 
 export function RouteLoading({ locale }: { locale: Locale }) {
   return (
-    <main className="centered-page" role="status" aria-live="polite">
-      <span className="spinner" aria-hidden="true" />
-      <p>{locale === "ar" ? "جارٍ تحميل الدليل…" : "Loading the guide…"}</p>
+    <main className="centered-page">
+      <div role="status" aria-live="polite">
+        <span className="spinner" aria-hidden="true" />
+        <h1 className="sr-only">{locale === "ar" ? "تحميل الدليل" : "Loading the guide"}</h1>
+        <p>{locale === "ar" ? "جارٍ تحميل الدليل…" : "Loading the guide…"}</p>
+      </div>
     </main>
   );
 }
@@ -12,9 +15,11 @@ export function RouteLoading({ locale }: { locale: Locale }) {
 export function RouteError({ locale, reset }: { locale: Locale; reset: () => void }) {
   const arabic = locale === "ar";
   return (
-    <main className="centered-page" role="alert">
-      <h1>{arabic ? "تعذر تحميل الصفحة" : "The page could not be loaded"}</h1>
-      <p>{arabic ? "لم نعرض أي معلومات بديلة أو مفترضة." : "No substitute or assumed information has been shown."}</p>
+    <main className="centered-page">
+      <div role="alert">
+        <h1>{arabic ? "تعذر تحميل الصفحة" : "The page could not be loaded"}</h1>
+        <p>{arabic ? "لم نعرض أي معلومات بديلة أو مفترضة." : "No substitute or assumed information has been shown."}</p>
+      </div>
       <div className="route-actions">
         <button className="button primary" type="button" onClick={reset}>{arabic ? "حاول مرة أخرى" : "Try again"}</button>
         <a className="button secondary" href={`/${locale}`}>{arabic ? "العودة إلى الدليل" : "Back to the guide"}</a>

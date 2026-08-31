@@ -60,38 +60,48 @@ describe("localized production metadata", () => {
     });
   });
 
-  it("describes the portfolio build as a technical demo using sample data", () => {
+  it("presents portfolio routes as a professional product without regulatory overclaims", () => {
     vi.stubEnv("NEXT_PUBLIC_CATALOG_MODE", "PORTFOLIO_DEMO_CATALOG");
 
     const arabic = buildHomeMetadata("ar");
     expect(arabic).toMatchObject({
-      title: "نسخة عرض تقنية | دليل تأسيس المنشآت",
+      title: "دليل تأسيس المنشآت في السعودية",
       description:
-        "نسخة عرض تقنية لدليل تأسيس المنشآت، توضح تجربة الأسئلة والقواعد الحتمية باستخدام بيانات نموذجية.",
+        "دليل عربي يساعدك على تنظيم خطوات بدء مقهى أو مطعم أو مطبخ سحابي من خلال أسئلة قصيرة.",
       openGraph: {
-        title: "نسخة عرض تقنية | دليل تأسيس المنشآت",
+        title: "دليل تأسيس المنشآت في السعودية",
+        description:
+          "دليل عربي يساعدك على تنظيم خطوات بدء مقهى أو مطعم أو مطبخ سحابي من خلال أسئلة قصيرة.",
       },
     });
 
     const english = buildHomeMetadata("en");
     expect(english).toMatchObject({
-      title: "Technical Demo | Saudi Business Launch Navigator",
+      title: "Saudi Business Launch Navigator",
       description:
-        "Technical portfolio demo of a business launch navigator using deterministic rules and sample data.",
+        "An Arabic-first guide that organizes launch steps for coffee shops, restaurants, and cloud kitchens through a short questionnaire.",
       openGraph: {
-        title: "Technical Demo | Saudi Business Launch Navigator",
+        title: "Saudi Business Launch Navigator",
+        description:
+          "An Arabic-first guide that organizes launch steps for coffee shops, restaurants, and cloud kitchens through a short questionnaire.",
       },
     });
-    expect(buildAboutMetadata("ar")).toMatchObject({
-      title: "حول نسخة العرض | دليل تأسيس المنشآت",
+    const arabicAbout = buildAboutMetadata("ar");
+    expect(arabicAbout).toMatchObject({
+      title: "حول دليل تأسيس المنشآت",
+      description: "تعرّف على هدف الدليل وطريقة عمله ومصادره وحدود النسخة التجريبية.",
     });
-    expect(buildAboutMetadata("en")).toMatchObject({
-      title: "About the Demo | Saudi Business Launch Navigator",
+    const englishAbout = buildAboutMetadata("en");
+    expect(englishAbout).toMatchObject({
+      title: "About | Saudi Business Launch Navigator",
+      description: "Learn what the guide does, how it handles sources, and the limits of the public demo.",
     });
 
-    const serialized = JSON.stringify([arabic, english]);
+    const serialized = JSON.stringify([arabic, english, arabicAbout, englishAbout]);
     expect(serialized).not.toMatch(/verified requirements|official next steps/i);
     expect(serialized).not.toContain("المتطلبات والخطوات الرسمية");
+    expect(serialized).not.toMatch(/technical demo|technical portfolio|deterministic rules/i);
+    expect(serialized).not.toMatch(/نسخة عرض تقنية|القواعد الحتمية/);
   });
 
   it("does not invent a deployment origin, social handle, or preview image", () => {

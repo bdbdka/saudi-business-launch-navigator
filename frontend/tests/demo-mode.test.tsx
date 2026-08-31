@@ -196,10 +196,12 @@ describe("portfolio demo presentation boundary", () => {
     );
 
     expect(screen.getByRole("region", {
-      name: "أكملت متابعة العناصر الحالية، لكن قائمة العرض لم تُحدد بالكامل بعد",
+      name: "أنجزت الخطوات الظاهرة، وما زلنا نحتاج معلومات",
     })).toBeInTheDocument();
-    expect(screen.getByText(/عناصر نموذجية لا تنطبق على إجاباتك/)).toBeInTheDocument();
-    expect(screen.getByText("لا توجد عناصر نموذجية منطبقة في هذا السيناريو.")).toBeInTheDocument();
+    expect(screen.getByText(/خطوات لم تظهر وفق إجاباتك/)).toBeInTheDocument();
+    expect(screen.getByText("لا توجد خطوة ظاهرة ضمن هذا السيناريو.")).toBeInTheDocument();
+    expect(screen.getByText(/نحتاج إجابتك عن/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "العودة إلى هذا السؤال" })).toBeInTheDocument();
     expect(screen.queryByText(/المتطلبات الحالية/)).not.toBeInTheDocument();
   });
 
@@ -225,11 +227,11 @@ describe("portfolio demo presentation boundary", () => {
     );
 
     expect(screen.getByRole("region", {
-      name: "The sample rules identified no applicable item",
+      name: "No steps are shown in this scenario",
     })).toBeInTheDocument();
-    expect(screen.getByText("The sample rules need no more information right now.")).toBeInTheDocument();
-    expect(screen.getByText("There are no additional examples to verify right now.")).toBeInTheDocument();
-    expect(screen.getByText(/Sample items that do not apply to your answers/)).toBeInTheDocument();
+    expect(screen.getByText("We do not need another answer to select the steps right now.")).toBeInTheDocument();
+    expect(screen.getByText("There are no additional review topics in this scenario.")).toBeInTheDocument();
+    expect(screen.getByText(/Steps not shown for your answers/)).toBeInTheDocument();
     expect(screen.queryByText(/applicable requirements/i)).not.toBeInTheDocument();
   });
 
@@ -246,6 +248,7 @@ describe("portfolio demo presentation boundary", () => {
       (item) => item.evaluated_facts.length > 0,
     );
     expect(tracedItem).toBeDefined();
+    response.result.applies[0].requirement_code = "demo_launch_orientation";
     response.result.applies[0].evaluated_facts = tracedItem!.evaluated_facts;
     render(
       <CatalogPresentationProvider metadata={demoMetadata} locale="en">
@@ -261,10 +264,87 @@ describe("portfolio demo presentation boundary", () => {
       </CatalogPresentationProvider>,
     );
 
-    expect(
-      screen.getByText("This sample item needs no additional question in this path."),
-    ).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Organize your business-start path" })).toBeInTheDocument();
+    expect(screen.getByText(/starting point of the sample journey/)).toBeInTheDocument();
+    expect(screen.getByText(/use the official activity reference below/)).toBeInTheDocument();
+    expect(screen.getByText(/What is this step?/)).toBeInTheDocument();
+    expect(screen.getByText(/Why did it appear?/)).toBeInTheDocument();
+    expect(screen.getByText(/What should you do now?/)).toBeInTheDocument();
+    expect(screen.queryByText(/This example demonstrates/)).not.toBeInTheDocument();
     expect(screen.queryByText(/This requirement is unconditional/i)).not.toBeInTheDocument();
+  });
+
+  it("renders unique bilingual product guidance in the intended result order", () => {
+    const response = checklistResponse(
+      activities[1],
+      { applies: 6, doesNotApply: 1, needs: 1 },
+    );
+    const codes = [
+      "demo_vat_confirmation",
+      "demo_sidewalk_setup",
+      "demo_delivery_setup",
+      "demo_worker_readiness",
+      "demo_employment_setup",
+      "demo_launch_orientation",
+    ];
+    response.result.applies.forEach((item, index) => {
+      item.requirement_code = codes[index];
+    });
+
+    render(
+      <CatalogPresentationProvider metadata={demoMetadata} locale="en">
+        <ChecklistResults
+          result={response.result}
+          locale="en"
+          copy={getDictionary("en")}
+          aiExplanation={[]}
+          onAnswerMissing={vi.fn()}
+          onEdit={vi.fn()}
+          onRestart={vi.fn()}
+        />
+      </CatalogPresentationProvider>,
+    );
+
+    expect(screen.getByRole("heading", { level: 1 })).toBeInTheDocument();
+    const applies = screen.getByRole("heading", { name: "Start with these steps" }).closest("section")!;
+    const cardTitles = within(applies).getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent);
+    expect(cardTitles).toEqual([
+      "Organize your business-start path",
+      "Organize your staffing plan",
+      "Prepare information about on-site workers",
+      "Organize your delivery plan",
+      "Review your planned sidewalk use",
+      "Record your VAT-route review outcome",
+    ]);
+    expect(within(applies).getAllByText("What is this step?")).toHaveLength(6);
+    expect(within(applies).getAllByText("Why did it appear?")).toHaveLength(6);
+    expect(within(applies).getAllByText("What should you do now?")).toHaveLength(6);
+
+    const review = screen.getByRole("heading", { name: "Review these topics" }).closest("section")!;
+    expect(within(review).getAllByText("What does this mean?")).toHaveLength(6);
+    expect(within(review).getAllByText("Why does this matter for your project?")).toHaveLength(6);
+    expect(within(review).getAllByText("What should you review?")).toHaveLength(6);
+    expect(within(review).getByText(/does not decide investment eligibility/)).toBeInTheDocument();
+    expect(within(review).getByText(/does not choose the best legal form/)).toBeInTheDocument();
+    expect(within(review).getByText(/without asking for your address/)).toBeInTheDocument();
+    expect(within(review).getByText(/does not calculate revenue/)).toBeInTheDocument();
+    expect(within(review).getByText(/not a decision that it applies/)).toBeInTheDocument();
+    expect(within(review).getByText(/does not calculate an obligation/)).toBeInTheDocument();
+    expect(screen.queryByText(/This example demonstrates how the guide presents/)).not.toBeInTheDocument();
+
+    const summary = document.querySelector(".result-introduction")!;
+    const missing = screen.getByRole("heading", { name: "We need information from you" }).closest("section")!;
+    const reference = screen.getByTestId("activity-official-reference");
+    const finalOutcome = screen.getByTestId("demo-final-summary").closest("section")!;
+    const coverage = document.querySelector(".coverage-notice")!;
+    const notSelected = document.querySelector(".not-applicable-group")!;
+    const ordered = [summary, applies, missing, review, reference, finalOutcome, coverage, notSelected];
+    ordered.slice(0, -1).forEach((element, index) => {
+      expect(element.compareDocumentPosition(ordered[index + 1]) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    });
+    expect(screen.getAllByText(/tracks only the marks you place/)).toHaveLength(1);
+    expect(screen.getByTestId("demo-final-summary")).toHaveTextContent("Separate topics to review: 6.");
+    expect(screen.getByTestId("demo-final-summary")).toHaveTextContent("official Balady activity reference");
   });
 
   it("shows one activity reference and one methodology link without card-level destinations", () => {

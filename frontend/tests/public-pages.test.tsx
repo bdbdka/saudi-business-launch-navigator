@@ -12,12 +12,13 @@ import {
 import { getDictionary } from "@/lib/i18n";
 
 describe("localized public information pages", () => {
-  it("explains the Arabic guide, scope, methodology, privacy, and limits in plain language", () => {
+  it("explains the Arabic product problem, scope, methodology, future, privacy, and limits in plain language", () => {
     const { container } = render(<AboutPage locale="ar" copy={getDictionary("ar")} />);
 
     expect(screen.getByRole("heading", { level: 1, name: "حول دليل تأسيس المنشآت" })).toBeInTheDocument();
     for (const heading of [
       "ما هو دليل تأسيس المنشآت؟",
+      "ما المشكلة التي يحاول حلها؟",
       "كيف يعمل؟",
       "من أين تأتي المعلومات؟",
       "ما الذي لا يفعله الدليل؟",
@@ -25,6 +26,7 @@ describe("localized public information pages", () => {
       "ما الأنشطة المدعومة حاليًا؟",
       "منهجية الدليل",
       "ماذا يحدث لإجاباتي؟",
+      "كيف يمكن أن يتطور الدليل؟",
     ]) {
       expect(screen.getByRole("heading", { level: 2, name: heading })).toBeInTheDocument();
     }
@@ -38,19 +40,30 @@ describe("localized public information pages", () => {
 
     const how = screen.getByRole("heading", { name: "كيف يعمل؟" }).closest("section")!;
     expect(within(how).getAllByRole("listitem")).toHaveLength(4);
-    expect(how).toHaveTextContent("راجع الأدلة ومعلومات التوجيه المعروضة");
-    expect(how).toHaveTextContent("العناصر التي تنطبق");
-    expect(how).toHaveTextContent("المعلومات التي ما زلنا نحتاجها");
-    expect(how).toHaveTextContent("الأمور التي يجب مراجعتها");
-    expect(how).toHaveTextContent("المتطلبات السابقة والمستندات والرسوم والخطوات");
+    expect(how).toHaveTextContent("اختر النشاط الأقرب إلى مشروعك");
+    expect(how).toHaveTextContent("لست متأكدًا");
+    expect(how).toHaveTextContent("الخطوات والمعلومات الناقصة");
+    expect(how).toHaveTextContent("لا يخمّن الذكاء الاصطناعي ما ينطبق");
+
+    const problem = screen.getByRole("heading", { name: "ما المشكلة التي يحاول حلها؟" }).closest("section")!;
+    expect(problem).toHaveTextContent("موزعة بين خدمات ومصادر حكومية مختلفة");
+    expect(problem).toHaveTextContent("من دون أن يحل محل الجهات الرسمية");
 
     const methodology = screen.getByRole("heading", { name: "منهجية الدليل" }).closest("section")!;
     expect(methodology).toHaveAttribute("id", "methodology");
-    expect(methodology).toHaveTextContent("بيانات نموذجية فقط");
+    expect(methodology).toHaveTextContent("بيانات نموذجية فقط لعرض تجربة الأسئلة والنتائج");
+    expect(methodology).toHaveTextContent("تُفصل البيانات النموذجية عن أي دليل أو مصدر حكومي");
     expect(methodology).toHaveTextContent("صفحات الأنشطة الرسمية في منصة بلدي مراجع على مستوى النشاط فقط");
     expect(methodology).toHaveTextContent("لا تعني أن عناصر القائمة النموذجية متطلبات سعودية منشورة");
-    expect(methodology).toHaveTextContent("النص العربي الرسمي المرجع الأساسي");
-    expect(methodology).toHaveTextContent("لا تنشر نسخة العرض البحث التنظيمي الخاص المحكوم");
+    expect(methodology).toHaveTextContent("النص العربي الرسمي هو المرجع الأساسي");
+    expect(methodology).toHaveTextContent("لا تنشر النسخة العامة بيانات البحث التنظيمي الخاصة");
+
+    const future = screen.getByRole("heading", { name: "كيف يمكن أن يتطور الدليل؟" }).closest("section")!;
+    expect(future).toHaveTextContent("رؤية مستقبلية وليست ميزات متاحة الآن");
+    expect(within(future).getAllByRole("listitem")).toHaveLength(5);
+    expect(future).toHaveTextContent("دعم أنشطة تجارية سعودية إضافية");
+    expect(future).toHaveTextContent("عندما تثبتها مصادر رسمية واضحة");
+    expect(future).toHaveTextContent("لن يحول ذلك الدليل إلى جهة ترخيص");
 
     const privacy = screen.getByRole("heading", { name: "ماذا يحدث لإجاباتي؟" }).closest("section")!;
     expect(privacy).toHaveAttribute("id", "privacy");
@@ -68,17 +81,23 @@ describe("localized public information pages", () => {
     expect(container).toHaveTextContent("لا يحسم مسألة عندما لا تكفي الأدلة الرسمية");
     expect(container).toHaveTextContent("قد تتغير الأنظمة والخدمات");
     expect(container.textContent).not.toMatch(
-      /deterministic engine|Pydantic|PostgreSQL|rule evaluator|APPLIES|NEEDS_INFORMATION|UUID/i,
+      /deterministic engine|Pydantic|PostgreSQL|rule evaluator|UUID|نسخة عرض تقنية|البنية المحكومة|القواعد الحتمية/i,
     );
+    expect(container.textContent).not.toMatch(/\b(?:APPLIES|NEEDS_INFORMATION)\b/);
   });
 
   it("provides the same public explanation and locale-safe navigation in English", () => {
     const { container } = render(<AboutPage locale="en" copy={getDictionary("en")} />);
 
     expect(screen.getByRole("heading", { level: 1, name: "About the Business Launch Guide" })).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "What problem does it address?" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Where does the information come from?" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "What does the guide not do?" })).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "What happens to my answers?" })).toBeInTheDocument();
+    const future = screen.getByRole("heading", { name: "How could the guide evolve?" }).closest("section")!;
+    expect(future).toHaveTextContent("future vision, not a list of features available today");
+    expect(future).toHaveTextContent("Support more Saudi business activities");
+    expect(future).toHaveTextContent("would not make the guide a licensing authority");
 
     const primaryNavigation = screen.getByRole("navigation", { name: "Primary navigation" });
     expect(within(primaryNavigation).getByRole("link", { name: "Home" })).toHaveAttribute("href", "/en");
@@ -95,8 +114,12 @@ describe("localized public information pages", () => {
     expect(container).toHaveTextContent("not affiliated with or representative of any government authority");
     expect(container).toHaveTextContent("not provenance for the synthetic checklist items");
     expect(container).toHaveTextContent("activity-level references only");
-    expect(container).toHaveTextContent("does not publish the private governed regulatory research");
+    expect(container).toHaveTextContent("does not publish private regulatory research data");
     expect(container).toHaveTextContent("does not issue licences for you, guarantee approval");
+    expect(container.textContent).not.toMatch(
+      /technical demo|portfolio build|governed architecture|deterministic engine/i,
+    );
+    expect(container.textContent).not.toMatch(/\b(?:APPLIES|NEEDS_INFORMATION)\b/);
   });
 
   it("keeps the minimal footer separate from the single results methodology link", () => {
@@ -126,23 +149,38 @@ describe("localized public information pages", () => {
 describe("localized route feedback", () => {
   it("renders honest Arabic and English loading states", () => {
     const { rerender } = render(<RouteLoading locale="ar" />);
-    expect(screen.getByRole("status")).toHaveTextContent("جارٍ تحميل الدليل");
+    let main = screen.getByRole("main");
+    let status = screen.getByRole("status");
+    expect(main).toContainElement(status);
+    expect(main).not.toHaveAttribute("role");
+    expect(status).toHaveAttribute("aria-live", "polite");
+    expect(within(status).getByRole("heading", { level: 1, name: "تحميل الدليل" })).toHaveClass("sr-only");
+    expect(status).toHaveTextContent("جارٍ تحميل الدليل");
 
     rerender(<RouteLoading locale="en" />);
-    expect(screen.getByRole("status")).toHaveTextContent("Loading the guide");
+    main = screen.getByRole("main");
+    status = screen.getByRole("status");
+    expect(main).toContainElement(status);
+    expect(within(status).getByRole("heading", { level: 1, name: "Loading the guide" })).toHaveClass("sr-only");
+    expect(status).toHaveTextContent("Loading the guide");
   });
 
   it("renders a sanitized error state and invokes only the supplied retry callback", async () => {
     const reset = vi.fn();
     render(<RouteError locale="en" reset={reset} />);
 
+    const main = screen.getByRole("main");
     const alert = screen.getByRole("alert");
+    expect(main).toContainElement(alert);
+    expect(main).not.toHaveAttribute("role");
     expect(alert).toHaveTextContent("The page could not be loaded");
     expect(alert).toHaveTextContent("No substitute or assumed information has been shown");
     expect(alert).not.toHaveTextContent("stack");
-    expect(within(alert).getByRole("link", { name: "Back to the guide" })).toHaveAttribute("href", "/en");
+    expect(within(alert).queryByRole("button")).not.toBeInTheDocument();
+    expect(within(alert).queryByRole("link")).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Back to the guide" })).toHaveAttribute("href", "/en");
 
-    await userEvent.click(within(alert).getByRole("button", { name: "Try again" }));
+    await userEvent.click(screen.getByRole("button", { name: "Try again" }));
     expect(reset).toHaveBeenCalledTimes(1);
   });
 

@@ -62,6 +62,14 @@ const forbiddenDemoText = [
   "إجاباتك المرتبطة بهذا المتطلب",
   "this requirement is unconditional",
   "هذا المتطلب غير مشروط",
+  "technical demo",
+  "sample rules",
+  "deterministic result",
+  "نسخة عرض تقنية",
+  "نسخة المحفظة",
+  "القواعد النموذجية",
+  "النتيجة الحتمية",
+  "هذا مثال يوضح",
 ] as const;
 
 const contradictoryCurrentRecordClaims = [
@@ -88,11 +96,20 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
-  await startActivity(page, "مطعم", "ابدأ");
+  await expect(page.getByRole("heading", { name: "قبل أن نبدأ" })).toBeVisible();
+  await expect(page.getByText(/معلومات بدء النشاط بين خدمات ومصادر حكومية متعددة/)).toBeVisible();
+  await startActivity(page, "مطعم", "ابدأ الأسئلة");
   await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toHaveCount(0);
-  await expect(page.getByText(/كيف تستجيب القواعد النموذجية لإجاباتك/)).toBeVisible();
+  await expect(page.getByText(/إذا لم تعرف إجابة، لا تخمّن/)).toBeVisible();
   const progress = page.getByRole("progressbar", { name: "تقدم الأسئلة" });
   await expect(progress).toHaveAttribute("aria-valuemax", "8");
+  await expect(page.getByText("السؤال ١ من ٨", { exact: true })).toBeVisible();
+  const firstHelp = page.getByRole("button", { name: "توضيح المقصود بالسؤال" });
+  await firstHelp.click();
+  await expect(page.getByText("ما المقصود؟", { exact: true })).toBeVisible();
+  await expect(page.getByText("لماذا نسألك؟", { exact: true })).toBeVisible();
+  await expect(page.getByText("مثال بسيط", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
@@ -107,7 +124,7 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   }
 
   const firstResponsePromise = waitForChecklist(page);
-  await page.getByRole("button", { name: "عرض قائمتي", exact: true }).click();
+  await page.getByRole("button", { name: "عرض النتيجة", exact: true }).click();
   const firstChecklist = await firstResponsePromise;
 
   expect(firstChecklist.metadata).toMatchObject({
@@ -124,7 +141,7 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
     publication_count: 0,
   });
 
-  await expect(page.getByRole("heading", { name: "قائمة بدء مشروعك" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "خطوات بدء مشروعك", level: 1 })).toBeVisible();
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(5);
   await expect(page.locator(".requirement-item.missing")).toHaveCount(1);
   await expectActivityReference(
@@ -139,10 +156,14 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
   await expect(page.getByText(/مسار نموذجي غير حكومي/)).toHaveCount(0);
   await expect(page.locator(".final-outcome")).toBeVisible();
+  await expectResultsOrder(page);
+  await expect(page.locator(".verification-item")).toHaveCount(6);
+  const reviewCards = await page.locator(".verification-item").allInnerTexts();
+  expect(new Set(reviewCards).size).toBe(reviewCards.length);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
-  await page.getByRole("button", { name: "أجب الآن", exact: true }).first().click();
+  await page.getByRole("button", { name: "العودة إلى هذا السؤال", exact: true }).first().click();
   await expect(progress).toHaveAttribute("aria-valuenow", "7");
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
@@ -150,7 +171,7 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await page.getByRole("button", { name: "التالي", exact: true }).click();
   await expect(progress).toHaveAttribute("aria-valuenow", "8");
   const resolvedResponsePromise = waitForChecklist(page);
-  await page.getByRole("button", { name: "عرض قائمتي", exact: true }).click();
+  await page.getByRole("button", { name: "عرض النتيجة", exact: true }).click();
   const resolvedChecklist = await resolvedResponsePromise;
 
   expect(resolvedChecklist.result.applies).toHaveLength(6);
@@ -168,8 +189,8 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   for (let index = 0; index < 6; index += 1) {
     await arabicCompletionBoxes.nth(index).check();
   }
-  await expect(page.getByRole("heading", { name: "أنهيت متابعة عناصر قائمة العرض" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "تأكد من هذه الأمور" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "أنهيت متابعة خطوات القائمة" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "راجع هذه الأمور" })).toBeVisible();
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
   expectRuntimeClean(faults);
@@ -209,8 +230,8 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
-  await startActivity(page, "Cloud kitchen", "Start");
-  await expect(page.getByText(/how the sample rules respond to your answers/i)).toBeVisible();
+  await startActivity(page, "Cloud kitchen", "Start questions");
+  await expect(page.getByText(/If you do not know an answer, do not guess/i)).toBeVisible();
   const progress = page.getByRole("progressbar", { name: "Question progress" });
   await expect(progress).toHaveAttribute("aria-valuemax", "7");
   await expectDemoDOMIntegrity(page);
@@ -224,12 +245,12 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   }
 
   const responsePromise = waitForChecklist(page);
-  await page.getByRole("button", { name: "See my checklist", exact: true }).click();
+  await page.getByRole("button", { name: "Show results", exact: true }).click();
   const checklist = await responsePromise;
   expect(checklist.result.applies).toHaveLength(5);
   expect(checklist.result.does_not_apply).toHaveLength(0);
   expect(checklist.result.needs_information).toHaveLength(0);
-  await expect(page.getByRole("heading", { name: "Your business launch checklist" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Your business-launch steps", level: 1 })).toBeVisible();
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(5);
   await expectActivityReference(
     page,
@@ -244,8 +265,8 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   for (let index = 0; index < 5; index += 1) {
     await englishCompletionBoxes.nth(index).check();
   }
-  await expect(page.getByRole("heading", { name: "Demo checklist follow-up complete" })).toBeVisible();
-  await expect(page.getByRole("heading", { name: "Things to verify" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "You finished following up on the checklist steps" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Review these topics" })).toBeVisible();
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
   expectRuntimeClean(faults);
@@ -265,6 +286,8 @@ test("About and mobile views keep the full bilingual demo boundary without a ban
   await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "حول دليل تأسيس المنشآت" })).toBeVisible();
   await expect(page.getByText(/هذا مشروع مستقل غير تابع لأي جهة حكومية/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "كيف يمكن أن يتطور الدليل؟" })).toBeVisible();
+  await expect(page.getByText(/هذه رؤية مستقبلية وليست ميزات متاحة الآن/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
@@ -273,6 +296,7 @@ test("About and mobile views keep the full bilingual demo boundary without a ban
   await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "About the Business Launch Guide" })).toBeVisible();
   await expect(page.getByText(/This is an independent project/)).toBeVisible();
+  await expect(page.getByRole("heading", { name: "How could the guide evolve?" })).toBeVisible();
   await expectNoHorizontalOverflow(page);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
@@ -290,9 +314,13 @@ test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", 
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
-  await startActivity(page, "مقهى", "ابدأ");
+  await startActivity(page, "مقهى", "ابدأ الأسئلة");
   const progress = page.getByRole("progressbar", { name: "تقدم الأسئلة" });
   await expect(progress).toHaveAttribute("aria-valuemax", "7");
+  await page.getByRole("button", { name: "توضيح المقصود بالسؤال" }).click();
+  await expect(page.getByText("ما المقصود؟", { exact: true })).toBeVisible();
+  await expectNoHorizontalOverflow(page);
+  await page.keyboard.press("Escape");
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
@@ -308,7 +336,7 @@ test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", 
   }
 
   const responsePromise = waitForChecklist(page);
-  await page.getByRole("button", { name: "عرض قائمتي", exact: true }).click();
+  await page.getByRole("button", { name: "عرض النتيجة", exact: true }).click();
   const checklist = await responsePromise;
 
   expect(checklist.metadata).toMatchObject({
@@ -317,7 +345,7 @@ test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", 
     data_classification: "SYNTHETIC_PORTFOLIO_DEMO",
   });
   expect(checklist.result.applies.length).toBeGreaterThan(0);
-  await expect(page.getByRole("heading", { name: "قائمة بدء مشروعك" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "خطوات بدء مشروعك", level: 1 })).toBeVisible();
   await expect(page.locator(".requirement-item.applicable")).toHaveCount(
     checklist.result.applies.length,
   );
@@ -337,8 +365,29 @@ async function startActivity(
   activityName: string,
   startLabel: string,
 ): Promise<void> {
-  await page.getByRole("button", { name: activityName, exact: true }).click();
+  const card = page.locator(".activity-choice").filter({
+    has: page.getByText(activityName, { exact: true }),
+  });
+  await expect(card).toHaveCount(1);
+  await card.click();
   await page.getByRole("button", { name: startLabel, exact: true }).click();
+}
+
+async function expectResultsOrder(page: Page): Promise<void> {
+  const order = await page.locator(
+    "#required-title, #missing-title, #verification-title, [data-testid='activity-official-reference'], .final-outcome",
+  ).evaluateAll((elements) => elements.map((element) => {
+    if (element.id) return element.id;
+    if (element.getAttribute("data-testid")) return "activity-reference";
+    return "final-outcome";
+  }));
+  expect(order).toEqual([
+    "required-title",
+    "missing-title",
+    "verification-title",
+    "activity-reference",
+    "final-outcome",
+  ]);
 }
 
 async function waitForChecklist(page: Page): Promise<ChecklistEnvelope> {

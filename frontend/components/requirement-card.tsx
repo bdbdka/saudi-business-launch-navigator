@@ -6,6 +6,11 @@ import { OfficialLink } from "@/components/official-link";
 import { ProgressCheckbox } from "@/components/progress-checkbox";
 import type { ChecklistItem, QuestionFactCode, SourceTrace } from "@/lib/api/types";
 import type { Dictionary, Locale } from "@/lib/i18n";
+import {
+  requirementProductGuidance,
+  resultProductCopy,
+  type RequirementProductGuidance,
+} from "@/lib/product-guidance";
 
 type RequirementVariant = "applicable" | "missing" | "secondary";
 
@@ -27,22 +32,45 @@ export function RequirementCard({
   onAnswerMissing: (factCode: QuestionFactCode) => void;
 }) {
   const { policy } = useCatalogPresentation();
-  const title = locale === "ar"
+  const productCopy = resultProductCopy(locale);
+  const productGuidance = policy.isPortfolioDemo
+    ? requirementProductGuidance(item.requirement_code, locale)
+    : null;
+  const catalogTitle = locale === "ar"
     ? item.project_arabic_title
     : item.project_english_title ?? item.project_arabic_title;
-  const description = locale === "ar"
+  const catalogDescription = locale === "ar"
     ? item.project_arabic_description
     : item.project_english_description ?? item.project_arabic_description;
+  const title = productGuidance?.title ?? catalogTitle;
+  const description = productGuidance?.what ?? catalogDescription;
   const authority = locale === "ar"
     ? item.authority.name_ar
     : item.authority.name_en ?? item.authority.name_ar;
   const primary = item.sources.find((source) => source.source_role === "primary") ?? item.sources[0];
   const reasons = copy.reasonLabels as Record<string, string>;
+  const why = policy.isPortfolioDemo
+    ? demoReason(item, locale, productGuidance, productCopy.missingReasonTemplate)
+    : humanReason(
+        item,
+        locale,
+        copy,
+        reasons,
+        copy.results.unconditional,
+        false,
+      );
 
   return (
     <article className={`requirement-item ${variant}${completed ? " user-completed" : ""}`}>
       <h4>{title}</h4>
-      <p className="requirement-description">{description}</p>
+      <p className="requirement-description">
+        <strong>{policy.isPortfolioDemo ? productCopy.whatLabel : copy.results.what}</strong>{" "}
+        {description}
+      </p>
+      <p className="requirement-reason">
+        <strong>{policy.isPortfolioDemo ? productCopy.whyLabel : copy.results.why}</strong>{" "}
+        {why}
+      </p>
 
       {variant === "missing" && item.evaluated_facts
         .filter((fact) => item.missing_fact_codes.includes(fact.fact_code))
@@ -50,12 +78,19 @@ export function RequirementCard({
           <div className="missing-action" key={fact.fact_code}>
             <p>{locale === "ar" ? fact.question_ar : fact.question_en}</p>
             <button className="button secondary small" type="button" onClick={() => onAnswerMissing(fact.fact_code)}>
-              {copy.results.answerNow}
+              {policy.isPortfolioDemo ? productCopy.answerNow : copy.results.answerNow}
             </button>
           </div>
         ))}
 
-      {variant === "applicable" && item.applicability_status === "APPLIES" && (
+      {variant === "applicable" && productGuidance && (
+        <p className="verification-action">
+          <strong>{productCopy.nextLabel}</strong>{" "}
+          {productGuidance.next}
+        </p>
+      )}
+
+      {variant === "applicable" && item.applicability_status === "APPLIES" && !policy.isPortfolioDemo && (
         <ActionabilityDetails items={item.actionability} locale={locale} copy={copy} />
       )}
 
@@ -80,19 +115,6 @@ export function RequirementCard({
         <details className="requirement-details">
           <summary>{copy.results.moreDetails}</summary>
           <div className="requirement-details-content">
-            <p className="requirement-reason">
-              <strong>{copy.results.why}</strong>{" "}
-              {humanReason(
-                item,
-                locale,
-                copy,
-                reasons,
-                policy.isPortfolioDemo
-                  ? policy.text.unconditionalItem
-                  : copy.results.unconditional,
-                policy.isPortfolioDemo,
-              )}
-            </p>
             {item.evaluated_facts.length > 0 && (
               <div>
                 <strong>
@@ -140,6 +162,36 @@ export function RequirementCard({
       )}
     </article>
   );
+}
+
+function demoReason(
+  item: ChecklistItem,
+  locale: Locale,
+  guidance: RequirementProductGuidance | null,
+  missingTemplate: string,
+): string {
+  const fallback = guidance?.why
+    ?? (locale === "ar"
+      ? "ترتبط هذه الخطوة بإجاباتك الحالية."
+      : "This action is connected to your current answers.");
+  if (item.reason_code === "UNCONDITIONAL_CURRENT_REQUIREMENT") return fallback;
+
+  const fact = item.evaluated_facts[0];
+  if (!fact) return fallback;
+  const question = locale === "ar" ? fact.question_ar : fact.question_en;
+  if (item.reason_code === "MISSING_REQUIRED_FACT" || fact.supplied_value === null) {
+    return missingTemplate.replace("{question}", question);
+  }
+
+  const answer = answerLabel(fact, locale);
+  if (item.applicability_status === "DOES_NOT_APPLY") {
+    return locale === "ar"
+      ? `لم تظهر ضمن خطواتك الأساسية لأن إجابتك عن «${question}» كانت «${answer}».`
+      : `It was not included in your main actions because you answered “${answer}” to “${question}”.`;
+  }
+  return locale === "ar"
+    ? `ظهرت لأن إجابتك عن «${question}» كانت «${answer}».`
+    : `It appeared because you answered “${answer}” to “${question}”.`;
 }
 
 function humanReason(

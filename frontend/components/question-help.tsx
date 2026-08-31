@@ -4,17 +4,18 @@ import { type ReactNode, useEffect, useId, useRef, useState } from "react";
 
 export function QuestionHelp({
   children,
-  text,
+  content,
   label,
+  labels,
 }: {
   children: ReactNode;
-  text: string;
+  content: { meaning: string; why: string; example?: string };
   label: string;
+  labels: { meaning: string; why: string; example: string };
 }) {
   const [open, setOpen] = useState(false);
-  const [pinned, setPinned] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
-  const tooltipId = useId();
+  const helpId = useId();
 
   useEffect(() => {
     if (!open) return;
@@ -22,13 +23,11 @@ export function QuestionHelp({
     const closeOutside = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setOpen(false);
-        setPinned(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
-        setPinned(false);
       }
     };
 
@@ -40,41 +39,48 @@ export function QuestionHelp({
     };
   }, [open]);
 
-  const closeIfNotPinned = () => {
-    if (!pinned) setOpen(false);
-  };
-
   return (
-    <span className="question-help" ref={rootRef}>
+    <span
+      className="question-help"
+      ref={rootRef}
+      onPointerEnter={(event) => {
+        if (event.pointerType === "mouse") setOpen(true);
+      }}
+      onPointerLeave={(event) => {
+        if (event.pointerType === "mouse") setOpen(false);
+      }}
+      onBlur={(event) => {
+        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+      }}
+    >
       <span className="question-legend-row">
         <span className="question-title-text">{children}</span>
-        <span
-          className="question-help-trigger"
-          onMouseEnter={() => setOpen(true)}
-          onMouseLeave={closeIfNotPinned}
-        >
+        <span className="question-help-trigger">
           <button
             type="button"
             className="question-help-button"
             aria-label={label}
             aria-expanded={open}
-            aria-controls={tooltipId}
-            aria-describedby={open ? tooltipId : undefined}
+            aria-controls={helpId}
             onFocus={() => setOpen(true)}
-            onBlur={closeIfNotPinned}
-            onClick={() => {
-              const nextPinned = !pinned;
-              setPinned(nextPinned);
-              setOpen(nextPinned);
-            }}
+            onClick={() => setOpen(true)}
           >
             <span aria-hidden="true">ⓘ</span>
           </button>
         </span>
       </span>
       {open && (
-        <span className="question-tooltip" id={tooltipId} role="tooltip">
-          {text}
+        <span className="question-tooltip" id={helpId} role="note">
+          <strong>{labels.meaning}</strong>
+          <span>{content.meaning}</span>
+          <strong>{labels.why}</strong>
+          <span>{content.why}</span>
+          {content.example && (
+            <>
+              <strong>{labels.example}</strong>
+              <span>{content.example}</span>
+            </>
+          )}
         </span>
       )}
     </span>

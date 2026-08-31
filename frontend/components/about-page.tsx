@@ -21,6 +21,10 @@ export function AboutPage({ locale, copy }: { locale: Locale; copy: Dictionary }
             <p>{copy.about.whatBodyTwo}</p>
           </AboutSection>
 
+          <AboutSection title={copy.about.problemTitle}>
+            <p>{copy.about.problemBody}</p>
+          </AboutSection>
+
           <AboutSection title={copy.about.howTitle}>
             <ol className="about-steps">
               {copy.about.howSteps.map((step) => <li key={step}>{step}</li>)}
@@ -31,6 +35,12 @@ export function AboutPage({ locale, copy }: { locale: Locale; copy: Dictionary }
           <AboutSection title={copy.about.sourcesTitle}>
             <p>{copy.about.sourcesBody}</p>
             <p className="about-principle">{copy.about.sourcesPrinciple}</p>
+          </AboutSection>
+
+          <AboutSection id="privacy" title={copy.about.privacyTitle}>
+            <p>{copy.about.privacyIntro}</p>
+            <ul>{copy.about.privacyItems.map((item) => <li key={item}>{item}</li>)}</ul>
+            <p className="privacy-caution">{copy.about.privacyCaution}</p>
           </AboutSection>
 
           <AboutSection title={copy.about.limitsTitle}>
@@ -51,10 +61,10 @@ export function AboutPage({ locale, copy }: { locale: Locale; copy: Dictionary }
             <ul>{copy.about.methodologyItems.map((item) => <li key={item}>{item}</li>)}</ul>
           </AboutSection>
 
-          <AboutSection id="privacy" title={copy.about.privacyTitle}>
-            <p>{copy.about.privacyIntro}</p>
-            <ul>{copy.about.privacyItems.map((item) => <li key={item}>{item}</li>)}</ul>
-            <p className="privacy-caution">{copy.about.privacyCaution}</p>
+          <AboutSection title={copy.about.futureTitle}>
+            <p><strong>{copy.about.futureIntro}</strong></p>
+            <ul>{copy.about.futureItems.map((item) => <li key={item}>{item}</li>)}</ul>
+            <p>{copy.about.futureCaution}</p>
           </AboutSection>
 
           <a className="button primary about-return" href={`/${locale}`}>{copy.about.backToGuide}</a>

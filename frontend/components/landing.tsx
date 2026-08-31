@@ -10,6 +10,10 @@ export function Hero({ copy, locale }: { copy: Dictionary; locale: Locale }) {
     <section className="hero section-shell" id="home">
       <h1>{copy.heroTitle}</h1>
       <p className="hero-body">{copy.heroBody}</p>
+      <div className="product-purpose">
+        <h2>{copy.purpose.title}</h2>
+        <p>{copy.purpose.body}</p>
+      </div>
       <ol className="simple-stages" aria-label={copy.workflow.label}>
         <li>{copy.workflow.activity}</li>
         <li>{copy.workflow.questions}</li>
@@ -21,6 +25,13 @@ export function Hero({ copy, locale }: { copy: Dictionary; locale: Locale }) {
       <p className="landing-disclaimer">
         {policy.isPortfolioDemo ? policy.text.homepageNotice : copy.landingDisclaimer}
       </p>
+      <aside className="before-start" aria-labelledby="before-start-title">
+        <h2 id="before-start-title">{copy.beforeStart.title}</h2>
+        <p>{copy.beforeStart.body}</p>
+        <ul>
+          {copy.beforeStart.items.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      </aside>
     </section>
   );
 }

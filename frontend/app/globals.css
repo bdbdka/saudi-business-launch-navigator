@@ -32,7 +32,7 @@ textarea:focus-visible,
 summary:focus-visible,
 input:focus-visible,
 [tabindex="-1"]:focus-visible {
-  outline: 3px solid rgb(11 90 71 / 35%);
+  outline: 3px solid #07513f;
   outline-offset: 3px;
 }
 
@@ -121,6 +121,22 @@ input:focus-visible,
   font-size: clamp(1rem, 2vw, 1.18rem);
   line-height: 1.85;
 }
+.product-purpose {
+  max-width: 620px;
+  padding: 20px 22px;
+  margin: 30px auto 0;
+  background: var(--paper);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: start;
+}
+.product-purpose h2, .before-start h2 { margin: 0; font-size: 1.08rem; }
+.product-purpose p, .before-start p {
+  margin: 8px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.75;
+}
 .simple-stages {
   display: flex;
   justify-content: center;
@@ -136,9 +152,32 @@ input:focus-visible,
 .simple-stages li::marker { color: var(--green); font-weight: 900; }
 .landing-coverage { margin: 20px auto 0; color: var(--muted); font-size: 0.8rem; }
 .landing-disclaimer { max-width: 610px; margin: 8px auto 0; color: var(--muted); font-size: 0.76rem; line-height: 1.7; }
+.before-start {
+  max-width: 620px;
+  padding: 22px;
+  margin: 30px auto 0;
+  background: var(--green-soft);
+  border-radius: var(--radius);
+  text-align: start;
+}
+.before-start ul {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  padding: 0;
+  margin: 16px 0 0;
+  list-style: none;
+}
+.before-start li {
+  padding-inline-start: 18px;
+  position: relative;
+  font-size: 0.84rem;
+  font-weight: 750;
+  line-height: 1.55;
+}
+.before-start li::before { position: absolute; inset-inline-start: 0; color: var(--green); content: "✓"; }
 
 .navigator-section { padding: 20px 0 92px; }
-.workflow-focus:focus { outline: 0; }
 .activity-panel, .question-card, .results-panel, .loading-card, .workflow-error { max-width: 720px; margin-inline: auto; }
 .section-heading { margin-bottom: 28px; text-align: center; }
 .section-heading h2 { margin: 6px 0 0; font-size: clamp(1.45rem, 3vw, 1.9rem); }
@@ -147,17 +186,25 @@ input:focus-visible,
 
 .activity-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
 .activity-choice {
-  min-height: 76px;
+  display: flex;
+  min-height: 188px;
   padding: 16px;
+  align-items: flex-start;
+  flex-direction: column;
   color: var(--ink);
   background: var(--paper);
   border: 1px solid var(--line);
   border-radius: 12px;
   cursor: pointer;
-  font-size: 1.02rem;
-  font-weight: 800;
+  text-align: start;
   transition: border-color 150ms ease, background 150ms ease;
 }
+.activity-choice-heading { display: flex; width: 100%; align-items: flex-start; justify-content: space-between; gap: 8px; }
+.activity-choice-heading > strong { font-size: 1.02rem; line-height: 1.5; }
+.activity-selected-mark { color: var(--green); font-size: 0.68rem; font-weight: 850; white-space: nowrap; }
+.activity-secondary-name { margin-top: 2px; color: var(--muted); font-size: 0.78rem; font-weight: 650; }
+.activity-guidance-label { margin-top: 16px; color: var(--green); font-size: 0.68rem; font-weight: 850; }
+.activity-description { margin-top: 4px; color: var(--muted); font-size: 0.82rem; font-weight: 500; line-height: 1.65; }
 .activity-choice:hover { border-color: #8eb5a7; }
 .activity-choice.selected { color: var(--green-dark); background: var(--green-soft); border-color: var(--green); }
 .activity-choice.skeleton { background: #ecefeb; border-color: transparent; animation: pulse 1.2s ease-in-out infinite alternate; }
@@ -224,8 +271,8 @@ input:focus-visible,
 .progress-track span { display: block; height: 100%; background: var(--green); }
 .question-card fieldset { padding: 0; margin: 0; border: 0; }
 .question-card legend { width: 100%; font-size: clamp(1.55rem, 3.5vw, 2.25rem); font-weight: 850; line-height: 1.5; }
-.questionnaire-intro { margin: 0 0 18px; color: var(--muted); font-size: 0.9rem; line-height: 1.65; }
-.question-card legend:focus, .results-heading h2:focus { outline: 0; }
+.questionnaire-intro { padding: 12px 14px; margin: 0 0 22px; color: var(--muted); background: var(--green-soft); border-radius: 9px; font-size: 0.9rem; line-height: 1.7; }
+.question-card legend:focus, .results-heading h1:focus { outline: 3px solid #07513f; outline-offset: 5px; }
 .question-help { display: grid; width: 100%; }
 .question-legend-row {
   display: flex;
@@ -268,6 +315,9 @@ input:focus-visible,
   line-height: 1.65;
   text-align: start;
 }
+.question-tooltip > strong { display: block; margin-top: 11px; color: var(--green-dark); font-size: 0.78rem; }
+.question-tooltip > strong:first-child { margin-top: 0; }
+.question-tooltip > span { display: block; margin-top: 2px; }
 .answer-grid { display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: 1fr; gap: 11px; margin-top: 26px; }
 .answer-button {
   display: flex;
@@ -298,6 +348,7 @@ input:focus-visible,
   line-height: 1;
   place-items: center;
 }
+.selected-answer-feedback { min-height: 24px; margin: 12px 0 0; color: var(--green); font-size: 0.82rem; font-weight: 750; }
 .question-actions { display: flex; width: min(100%, 440px); justify-content: space-between; gap: 12px; margin: 28px auto 0; }
 .question-actions .button { min-width: 132px; flex: 1; }
 .empty-questionnaire { text-align: center; }
@@ -305,7 +356,7 @@ input:focus-visible,
 .results-panel { padding-top: 20px; }
 .results-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; }
 .results-heading .activity-context { margin-top: 6px; color: var(--green); font-weight: 750; }
-.results-heading h2 { margin: 5px 0 0; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.3; }
+.results-heading h1 { margin: 5px 0 0; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.3; }
 .results-actions { display: flex; gap: 14px; }
 .results-actions .edit-answers { color: var(--green); }
 .results-actions .start-over { color: var(--muted); font-weight: 700; }
@@ -555,9 +606,10 @@ input:focus-visible,
   .hero { padding-block: 42px 20px; }
   .hero h1 { font-size: clamp(2rem, 10vw, 3rem); }
   .simple-stages { display: grid; justify-content: start; width: fit-content; gap: 7px; text-align: start; }
+  .before-start ul { grid-template-columns: 1fr; }
   .navigator-section { padding-bottom: 64px; }
   .activity-grid { grid-template-columns: 1fr; }
-  .activity-choice { min-height: 60px; }
+  .activity-choice { min-height: 0; }
   .activity-start { width: 100%; }
   .optional-ai { margin-top: 24px; }
   .optional-ai-actions, .results-heading, .footer-inner { align-items: stretch; flex-direction: column; }

@@ -5,6 +5,7 @@ import { visibleJourneyGuidance, type MissingNavigation } from "@/components/jou
 import { OfficialLink } from "@/components/official-link";
 import type { ChecklistResult, JourneyGuidance } from "@/lib/api/types";
 import { formatNumber, type Dictionary, type Locale } from "@/lib/i18n";
+import { resultProductCopy } from "@/lib/product-guidance";
 
 export function FinalOutcome({
   result,
@@ -23,6 +24,7 @@ export function FinalOutcome({
 }) {
   const { policy } = useCatalogPresentation();
   const isDemo = policy.isPortfolioDemo;
+  const productCopy = resultProductCopy(locale);
   const totalApplicable = result.applies.length;
   const remaining = Math.max(0, totalApplicable - completedCount);
   const allApplicableMarked = totalApplicable > 0 && completedCount === totalApplicable;
@@ -37,43 +39,44 @@ export function FinalOutcome({
     result.missing_navigation_information,
   );
   const verificationCount = guidance.length + result.missing_navigation_information.length;
+  const unresolvedAnswerCount = requestedAnswerCount + result.missing_navigation_information.length;
   const values = {
     completed: formatNumber(completedCount, locale),
     total: formatNumber(totalApplicable, locale),
     remaining: formatNumber(remaining, locale),
     count: formatNumber(requestedAnswerCount, locale),
+    unresolved: formatNumber(unresolvedAnswerCount, locale),
+    review: formatNumber(verificationCount, locale),
   };
 
   return (
     <section className="final-outcome" aria-labelledby="final-outcome-title">
-      <p className="stage-label">{copy.results.finalOutcomeLabel}</p>
+      <p className="stage-label">
+        {isDemo ? productCopy.finalLabel : copy.results.finalOutcomeLabel}
+      </p>
 
       {!allApplicableMarked && !missingOnlyState && !noApplicableState && (
         <div className="final-outcome-state">
-          <h3 id="final-outcome-title">{copy.results.finalInProgressTitle}</h3>
-          <p>{interpolate(
-            isDemo
-              ? policy.text.finalInProgressCompletedTemplate
-              : copy.results.finalInProgressCompletedTemplate,
-            values,
-          )}</p>
-          <p>{interpolate(
-            isDemo
-              ? policy.text.finalInProgressRemainingTemplate
-              : copy.results.finalInProgressRemainingTemplate,
-            values,
-          )}</p>
+          <h3 id="final-outcome-title">
+            {isDemo ? productCopy.finalInProgressTitle : copy.results.finalInProgressTitle}
+          </h3>
+          {!isDemo && (
+            <>
+              <p>{interpolate(copy.results.finalInProgressCompletedTemplate, values)}</p>
+              <p>{interpolate(copy.results.finalInProgressRemainingTemplate, values)}</p>
+            </>
+          )}
         </div>
       )}
 
       {noApplicableState && (
         <div className="final-outcome-state">
           <h3 id="final-outcome-title">
-            {isDemo ? policy.text.finalNoApplicableTitle : copy.results.finalNoApplicableTitle}
+            {isDemo ? productCopy.finalNoApplicableTitle : copy.results.finalNoApplicableTitle}
           </h3>
           <p>
             {isDemo
-              ? policy.text.noApplicableExplanation
+              ? productCopy.finalNoApplicableBody
               : copy.results.finalNoApplicableBody}
           </p>
         </div>
@@ -83,10 +86,13 @@ export function FinalOutcome({
         <div className="final-outcome-state unresolved">
           <h3 id="final-outcome-title">
             {isDemo
-              ? policy.text.finalMissingInformationTitle
+              ? productCopy.finalMissingTitle
               : copy.results.finalMissingInformationTitle}
           </h3>
-          <p>{interpolate(copy.results.finalMissingInformationTemplate, values)}</p>
+          <p>{interpolate(
+            isDemo ? productCopy.finalMissingTemplate : copy.results.finalMissingInformationTemplate,
+            values,
+          )}</p>
           <button className="button secondary small" type="button" onClick={onEdit}>
             {copy.results.edit}
           </button>
@@ -98,12 +104,12 @@ export function FinalOutcome({
           <div className="final-outcome-state complete">
             <h3 id="final-outcome-title">
               {isDemo
-                ? policy.text.finalFollowUpCompleteTitle
+                ? productCopy.finalCompleteTitle
                 : copy.results.finalFollowUpCompleteTitle}
             </h3>
             <p>
               {isDemo
-                ? policy.text.completedChecklistExplanation
+                ? productCopy.finalCompleteBody
                 : copy.results.finalFollowUpCompleteBody}
             </p>
           </div>
@@ -140,6 +146,28 @@ export function FinalOutcome({
             </div>
           ) : null}
         </>
+      )}
+
+      {isDemo && (
+        <div className="final-verification-summary" data-testid="demo-final-summary">
+          <h4>{productCopy.finalSummaryTitle}</h4>
+          <ul>
+            <li>{interpolate(productCopy.finalActionsTemplate, values)}</li>
+            <li>
+              {unresolvedAnswerCount > 0
+                ? interpolate(productCopy.finalMissingTemplate, {
+                    ...values,
+                    count: values.unresolved,
+                  })
+                : productCopy.finalNoMissing}
+            </li>
+            <li>{interpolate(productCopy.finalReviewTemplate, {
+              ...values,
+              count: values.review,
+            })}</li>
+            <li>{productCopy.finalActivityReference}</li>
+          </ul>
+        </div>
       )}
 
       {!isDemo && (

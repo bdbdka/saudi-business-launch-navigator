@@ -4,6 +4,12 @@ import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import { OfficialLink } from "@/components/official-link";
 import type { ChecklistResult, JourneyGuidance, QuestionFactCode } from "@/lib/api/types";
 import type { Dictionary, Locale } from "@/lib/i18n";
+import {
+  demoReviewTopicOrder,
+  missingNavigationProductGuidance,
+  resultProductCopy,
+  reviewTopicProductGuidance,
+} from "@/lib/product-guidance";
 
 export type MissingNavigation = ChecklistResult["missing_navigation_information"][number];
 
@@ -12,9 +18,11 @@ export function visibleJourneyGuidance(
   missingNavigation: MissingNavigation[],
 ): JourneyGuidance[] {
   const missingTopicCodes = new Set(missingNavigation.flatMap((item) => item.affected_topic_codes));
-  return guidance.filter(
-    (item) => !(item.destinations.length === 0 && missingTopicCodes.has(item.topic_code)),
-  );
+  return [...guidance]
+    .filter((item) => !(item.destinations.length === 0 && missingTopicCodes.has(item.topic_code)))
+    .sort(
+      (left, right) => demoReviewTopicOrder(left.topic_code) - demoReviewTopicOrder(right.topic_code),
+    );
 }
 
 export function JourneyGuidanceList({
@@ -31,12 +39,13 @@ export function JourneyGuidanceList({
   onAnswerMissing: (factCode: QuestionFactCode) => void;
 }) {
   const { policy } = useCatalogPresentation();
+  const productCopy = resultProductCopy(locale);
   const visibleGuidance = visibleJourneyGuidance(guidance, missingNavigation);
 
   if (missingNavigation.length === 0 && visibleGuidance.length === 0) {
     return (
       <p className="empty-state compact">
-        {policy.isPortfolioDemo ? policy.text.noVerificationItems : copy.results.noVerification}
+        {policy.isPortfolioDemo ? productCopy.noReviewItems : copy.results.noVerification}
       </p>
     );
   }
@@ -47,6 +56,7 @@ export function JourneyGuidanceList({
         <MissingNavigationItem
           key={item.fact_code}
           item={item}
+          locale={locale}
           copy={copy}
           onAnswerMissing={onAnswerMissing}
         />
@@ -60,21 +70,27 @@ export function JourneyGuidanceList({
 
 function MissingNavigationItem({
   item,
+  locale,
   copy,
   onAnswerMissing,
 }: {
   item: MissingNavigation;
+  locale: Locale;
   copy: Dictionary;
   onAnswerMissing: (factCode: QuestionFactCode) => void;
 }) {
   const { policy } = useCatalogPresentation();
-  const text = copy.navigationMissing[item.fact_code];
+  const text = policy.isPortfolioDemo
+    ? missingNavigationProductGuidance(item.fact_code, locale)
+      ?? copy.navigationMissing[item.fact_code]
+    : copy.navigationMissing[item.fact_code];
+  const productCopy = resultProductCopy(locale);
   return (
     <article className="verification-item navigation-missing">
       <h4>{text.title}</h4>
-      <p>{policy.isPortfolioDemo ? policy.text.missingNavigationExplanation : text.body}</p>
+      <p>{text.body}</p>
       <button className="text-button" type="button" onClick={() => onAnswerMissing(item.fact_code)}>
-        {copy.results.answerNow}
+        {policy.isPortfolioDemo ? productCopy.answerNow : copy.results.answerNow}
       </button>
     </article>
   );
@@ -91,15 +107,15 @@ function JourneyItem({
 }) {
   const { policy } = useCatalogPresentation();
   const isDemo = policy.isPortfolioDemo;
+  const productCopy = resultProductCopy(locale);
+  const productGuidance = isDemo ? reviewTopicProductGuidance(item.topic_code, locale) : null;
   const labels = copy.journeyLabels as Record<string, string>;
-  const title = labels[item.topic_code]
+  const title = productGuidance?.title ?? labels[item.topic_code]
     ?? (locale === "ar" ? item.title_ar : item.title_en ?? item.title_ar);
   const confirmation = item.coverage_state === "REQUIRES_OFFICIAL_CONFIRMATION";
-  const summary = isDemo
-    ? policy.text.journeyExplanation
-    : confirmation
-      ? null
-      : localized(item.verified_summary_ar, item.verified_summary_en, locale);
+  const summary = confirmation
+    ? null
+    : localized(item.verified_summary_ar, item.verified_summary_en, locale);
   const limitation = isDemo
     ? null
     : localized(item.limitation_summary_ar, item.limitation_summary_en, locale);
@@ -111,7 +127,17 @@ function JourneyItem({
     return (
       <article className="verification-item" data-presentation="synthetic-demo">
         <h4>{title}</h4>
-        <p>{policy.text.journeyExplanation}</p>
+        {productGuidance ? (
+          <>
+            <p><strong>{productCopy.meaningLabel}</strong>{" "}{productGuidance.meaning}</p>
+            <p><strong>{productCopy.importanceLabel}</strong>{" "}{productGuidance.importance}</p>
+            <p className="verification-action">
+              <strong>{productCopy.reviewLabel}</strong>{" "}{productGuidance.review}
+            </p>
+          </>
+        ) : (
+          <p>{productCopy.reviewFallback}</p>
+        )}
       </article>
     );
   }

@@ -3,6 +3,7 @@
 import { useCatalogPresentation } from "@/components/catalog-mode-context";
 import type { ChecklistResult } from "@/lib/api/types";
 import { formatNumber, type Dictionary, type Locale } from "@/lib/i18n";
+import { resultProductCopy } from "@/lib/product-guidance";
 
 export function ResultSummary({
   result,
@@ -19,6 +20,7 @@ export function ResultSummary({
 }) {
   const { policy } = useCatalogPresentation();
   const isDemo = policy.isPortfolioDemo;
+  const productCopy = resultProductCopy(locale);
   const totalApplicable = result.applies.length;
   const remaining = Math.max(0, totalApplicable - completedCount);
   const unresolved = result.needs_information.length > 0;
@@ -34,10 +36,10 @@ export function ResultSummary({
 
   return (
     <div className="result-introduction" aria-label={copy.results.summary}>
-      <h3>{copy.results.introTitle}</h3>
+      <h3>{isDemo ? productCopy.introTitle : copy.results.introTitle}</h3>
       <p>
         {isDemo
-          ? policy.text.resultIntro
+          ? productCopy.introBody
           : copy.results.introBody}
       </p>
 
@@ -53,7 +55,7 @@ export function ResultSummary({
         ) : (
           <p>
             {isDemo
-              ? policy.text.resultDetermined
+              ? productCopy.resultDetermined
               : copy.results.checklistDetermined}
           </p>
         )}
@@ -61,11 +63,11 @@ export function ResultSummary({
 
       <div className="checklist-progress-summary">
         <h3>
-          {isDemo ? policy.text.checklistItemsTitle : copy.results.projectChecklistTitle}
+          {isDemo ? productCopy.progressTitle : copy.results.projectChecklistTitle}
         </h3>
         <p className="applicable-total">
           {interpolate(
-            isDemo ? policy.text.applicableItemsTemplate : copy.results.requirementsApplyTemplate,
+            isDemo ? productCopy.applicableItemsTemplate : copy.results.requirementsApplyTemplate,
             values,
           )}
         </p>
@@ -77,7 +79,7 @@ export function ResultSummary({
           <div
             className="personal-progress-track"
             role="progressbar"
-            aria-label={isDemo ? policy.text.progressBarLabel : copy.results.progressBarLabel}
+            aria-label={isDemo ? productCopy.progressBarLabel : copy.results.progressBarLabel}
             aria-valuemin={0}
             aria-valuemax={totalApplicable}
             aria-valuenow={completedCount}
@@ -86,9 +88,9 @@ export function ResultSummary({
             <span style={{ width: `${progressPercent}%` }} />
           </div>
         )}
-        {!isDemo && (
-          <p className="personal-progress-disclaimer">{copy.results.personalProgressDisclaimer}</p>
-        )}
+        <p className="personal-progress-disclaimer">
+          {isDemo ? productCopy.progressDisclaimer : copy.results.personalProgressDisclaimer}
+        </p>
       </div>
     </div>
   );

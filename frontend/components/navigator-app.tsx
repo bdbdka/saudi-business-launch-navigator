@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import { ActivitySelector } from "@/components/activity-selector";
 import { CatalogPresentationProvider } from "@/components/catalog-mode-context";
@@ -46,7 +46,6 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
   const [aiUnavailable, setAIUnavailable] = useState(false);
   const [aiClarifications, setAIClarifications] = useState<string[]>([]);
   const [aiExplanation, setAIExplanation] = useState<string[]>([]);
-  const workflowRef = useRef<HTMLDivElement>(null);
   const copy = useMemo(() => getDictionary(locale), [locale]);
   const acceptCatalogBoundary = useCallback((metadata: CatalogBoundary) => {
     if (!catalogBoundaryMatchesBuild(metadata)) {
@@ -90,10 +89,6 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
       });
     return () => { cancelled = true; };
   }, [acceptCatalogBoundary]);
-
-  useEffect(() => {
-    if (stage !== "activities") workflowRef.current?.focus();
-  }, [stage]);
 
   function changeLocale(nextLocale: Locale) {
     setLocale(nextLocale);
@@ -256,7 +251,7 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
         {stage === "activities" && <Hero copy={copy} locale={locale} />}
         <section className="navigator-section" id="navigator">
           <div className="section-shell">
-            <div className="workflow-focus" ref={workflowRef} tabIndex={-1}>
+            <div className="workflow-focus">
               {stage === "activities" && (
                 <ActivitySelector
                   activities={activities}

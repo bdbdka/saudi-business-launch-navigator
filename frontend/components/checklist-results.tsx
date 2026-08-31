@@ -9,6 +9,7 @@ import { RequirementCard } from "@/components/requirement-card";
 import { ResultSummary } from "@/components/result-summary";
 import type { ChecklistResult, QuestionFactCode } from "@/lib/api/types";
 import { formatNumber, type Dictionary, type Locale } from "@/lib/i18n";
+import { demoRequirementOrder, resultProductCopy } from "@/lib/product-guidance";
 
 export function ChecklistResults({
   result,
@@ -29,6 +30,7 @@ export function ChecklistResults({
 }) {
   const { policy } = useCatalogPresentation();
   const isDemo = policy.isPortfolioDemo;
+  const productCopy = resultProductCopy(locale);
   const titleRef = useRef<HTMLHeadingElement>(null);
   const [completed, setCompleted] = useState<Set<string>>(new Set());
 
@@ -41,6 +43,16 @@ export function ChecklistResults({
     (count, item) => count + Number(completed.has(item.requirement_version_id)),
     0,
   );
+  const presentItems = <Item extends { requirement_code: string }>(items: Item[]): Item[] => (
+    isDemo
+      ? [...items].sort(
+          (left, right) => demoRequirementOrder(left.requirement_code) - demoRequirementOrder(right.requirement_code),
+        )
+      : items
+  );
+  const applies = presentItems(result.applies);
+  const needsInformation = presentItems(result.needs_information);
+  const doesNotApply = presentItems(result.does_not_apply);
   const setRequirementCompleted = (id: string, value: boolean) => {
     setCompleted((current) => {
       const next = new Set(current);
@@ -56,7 +68,7 @@ export function ChecklistResults({
         <div>
           <p className="stage-label">{copy.workflow.checklist}</p>
           <p className="activity-context">{activityName}</p>
-          <h2 id="results-title" ref={titleRef} tabIndex={-1}>{copy.results.title}</h2>
+          <h1 id="results-title" ref={titleRef} tabIndex={-1}>{copy.results.title}</h1>
         </div>
         <div className="results-actions">
           <button className="text-button edit-answers" type="button" onClick={onEdit}>{copy.results.edit}</button>
@@ -76,37 +88,23 @@ export function ChecklistResults({
         copy={copy}
         onEdit={onEdit}
       />
-      <ActivityOfficialReference
-        activityCode={result.activity.code}
-        locale={locale}
-        copy={copy}
-      />
-      <FinalOutcome
-        result={result}
-        completedCount={completedCount}
-        locale={locale}
-        copy={copy}
-        onEdit={onEdit}
-        onAnswerMissing={onAnswerMissing}
-      />
-      <CoverageNotice result={result} locale={locale} copy={copy} />
 
       <section className="result-group" aria-labelledby="required-title">
         <div className="bucket-heading">
-          <h3 id="required-title">{copy.results.required}</h3>
+          <h3 id="required-title">{isDemo ? productCopy.appliesTitle : copy.results.required}</h3>
           <p>
             {isDemo
-              ? policy.text.applicableGroupExplanation
+              ? productCopy.appliesBody
               : copy.results.requiredBody}
           </p>
         </div>
-        {result.applies.length === 0 ? (
+        {applies.length === 0 ? (
           <p className="empty-state compact">
-            {isDemo ? policy.text.noApplicableItems : copy.results.noRequired}
+            {isDemo ? productCopy.noApplicableItems : copy.results.noRequired}
           </p>
         ) : (
           <div className="requirement-list">
-            {result.applies.map((item) => (
+            {applies.map((item) => (
               <RequirementCard
                 key={item.requirement_version_id}
                 item={item}
@@ -124,22 +122,22 @@ export function ChecklistResults({
 
       <section className="result-group missing-group" aria-labelledby="missing-title">
         <div className="bucket-heading">
-          <h3 id="missing-title">{copy.results.missing}</h3>
-          {result.needs_information.length > 0 && (
+          <h3 id="missing-title">{isDemo ? productCopy.missingTitle : copy.results.missing}</h3>
+          {needsInformation.length > 0 && (
             <p>
               {isDemo
-                ? policy.text.missingGroupExplanation
+                ? productCopy.missingBody
                 : copy.results.missingBody}
             </p>
           )}
         </div>
-        {result.needs_information.length === 0 ? (
+        {needsInformation.length === 0 ? (
           <p className="empty-state compact">
-            {isDemo ? policy.text.noMissingInformation : copy.results.noMissing}
+            {isDemo ? productCopy.noMissingInformation : copy.results.noMissing}
           </p>
         ) : (
           <div className="requirement-list">
-            {result.needs_information.map((item) => (
+            {needsInformation.map((item) => (
               <RequirementCard
                 key={item.requirement_version_id}
                 item={item}
@@ -155,10 +153,10 @@ export function ChecklistResults({
 
       <section className="result-group verification-group" aria-labelledby="verification-title">
         <div className="bucket-heading">
-          <h3 id="verification-title">{copy.results.verify}</h3>
+          <h3 id="verification-title">{isDemo ? productCopy.reviewTitle : copy.results.verify}</h3>
           <p>
             {isDemo
-              ? policy.text.verificationGroupExplanation
+              ? productCopy.reviewBody
               : copy.results.verifyBody}
           </p>
         </div>
@@ -171,13 +169,28 @@ export function ChecklistResults({
         />
       </section>
 
-      {result.does_not_apply.length > 0 && (
+      <ActivityOfficialReference
+        activityCode={result.activity.code}
+        locale={locale}
+        copy={copy}
+      />
+      <FinalOutcome
+        result={result}
+        completedCount={completedCount}
+        locale={locale}
+        copy={copy}
+        onEdit={onEdit}
+        onAnswerMissing={onAnswerMissing}
+      />
+      <CoverageNotice result={result} locale={locale} copy={copy} />
+
+      {doesNotApply.length > 0 && (
         <details className="not-applicable-group">
           <summary>
-            {isDemo ? policy.text.notApplicableItemsTitle : copy.results.notRequired} ({formatNumber(result.does_not_apply.length, locale)})
+            {isDemo ? productCopy.notSelectedTitle : copy.results.notRequired} ({formatNumber(doesNotApply.length, locale)})
           </summary>
           <div className="requirement-list secondary-list">
-            {result.does_not_apply.map((item) => (
+            {doesNotApply.map((item) => (
               <RequirementCard
                 key={item.requirement_version_id}
                 item={item}
