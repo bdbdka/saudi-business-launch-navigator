@@ -95,7 +95,7 @@ describe("Arabic-first simplified shell", () => {
     await waitFor(() => expect(api.activities).toHaveBeenCalled());
     expect(screen.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeInTheDocument();
     expect(screen.getByText("احصل على خطوات مرتبة بناءً على إجاباتك")).toBeInTheDocument();
-    expect(screen.getByText(/يدعم الإصدار الحالي المقاهي والمطاعم والمطابخ السحابية/)).toBeInTheDocument();
+    expect(screen.getByText(/يركز نطاق البحث الحالي على المقاهي والمطاعم والمطابخ السحابية/)).toBeInTheDocument();
     expect(screen.queryByText(/النطاق الحالي هو المقاهي/)).not.toBeInTheDocument();
     expect(screen.queryByText(demoMetadata.warning_ar)).not.toBeInTheDocument();
     expect(screen.queryByTestId("portfolio-demo-notice")).not.toBeInTheDocument();
@@ -184,7 +184,7 @@ describe("Arabic-first simplified shell", () => {
     ]);
     expect(
       screen.getByText(
-        "يدعم الإصدار الحالي المقاهي والمطاعم والمطابخ السحابية، مع الرياض وجدة كسياق تجريبي فقط. لا يسأل هذا الإصدار عن المدينة ولا يقارن قواعد المدن، ويمكن توسيعه كلما توفرت تغطية متحققة.",
+        "يركز نطاق البحث الحالي على المقاهي والمطاعم والمطابخ السحابية في الرياض وجدة. لم تُراجع بقية مدن المملكة مراجعة كاملة بعد، وهذا لا يعني أن قواعدها مختلفة ولا أن تطابقها على مستوى المملكة قد تم التحقق منه. سنضيف مدنًا أخرى بعد بحث المصادر الحكومية الرسمية والتحقق منها.",
       ),
     ).toBeInTheDocument();
     const coffeeShop = await screen.findByRole("button", { name: "مقهى" });
@@ -204,7 +204,7 @@ describe("Arabic-first simplified shell", () => {
     expect(screen.getByRole("link", { name: "Saudi Business Launch Navigator" })).toHaveAttribute("href", "/en");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Understand your business-launch steps clearly");
     expect(screen.getByText(/Answer a few short questions about your business/)).toBeInTheDocument();
-    expect(screen.getByText(/The current pilot supports coffee shops, restaurants, and cloud kitchens/)).toBeInTheDocument();
+    expect(screen.getByText(/The current research scope covers coffee shops, restaurants, and cloud kitchens/)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /Coffee shop/ })).toBeInTheDocument();
     await waitFor(() => expect(document.documentElement).toHaveAttribute("dir", "ltr"));
     expect(document.documentElement).toHaveAttribute("lang", "en");

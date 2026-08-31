@@ -67,7 +67,7 @@ const portfolioDemoText: Record<Locale, CatalogPresentationPolicy["text"]> = {
     footerNotice: "يعتمد الدليل على بيانات نموذجية في النسخة التجريبية، ولا يمثل جهة حكومية.",
     landingChecklist: "احصل على خطوات مرتبة بناءً على إجاباتك",
     landingCoverage:
-      "يدعم الإصدار الحالي المقاهي والمطاعم والمطابخ السحابية، مع الرياض وجدة كسياق تجريبي فقط. لا يسأل هذا الإصدار عن المدينة ولا يقارن قواعد المدن، ويمكن توسيعه كلما توفرت تغطية متحققة.",
+      "يركز نطاق البحث الحالي على المقاهي والمطاعم والمطابخ السحابية في الرياض وجدة. لم تُراجع بقية مدن المملكة مراجعة كاملة بعد، وهذا لا يعني أن قواعدها مختلفة ولا أن تطابقها على مستوى المملكة قد تم التحقق منه. سنضيف مدنًا أخرى بعد بحث المصادر الحكومية الرسمية والتحقق منها.",
     questionnaireIntro:
       "سنطرح عليك أسئلة قصيرة عن مشروعك. إذا لم تعرف إجابة، لا تخمّن؛ اختر «لست متأكدًا» وسنوضح ما يحتاج إلى مراجعة.",
     questionnaireEmptyBody:
@@ -118,7 +118,7 @@ const portfolioDemoText: Record<Locale, CatalogPresentationPolicy["text"]> = {
     footerNotice: "This demo uses sample data and is not a government service.",
     landingChecklist: "Get organized steps based on your answers",
     landingCoverage:
-      "The current pilot supports coffee shops, restaurants, and cloud kitchens, with Riyadh and Jeddah as context only. It does not ask for a city or compare city-specific rules, and it can expand as verified coverage grows.",
+      "The current research scope covers coffee shops, restaurants, and cloud kitchens in Riyadh and Jeddah. Other Saudi cities have not yet been fully reviewed; this neither assumes their rules differ nor claims nationwide equivalence has been verified. More cities can be added after official-source research and verification.",
     questionnaireIntro:
       "We will ask a few short questions about your business. If you do not know an answer, do not guess—choose “Not sure” and we will show what needs review.",
     questionnaireEmptyBody:

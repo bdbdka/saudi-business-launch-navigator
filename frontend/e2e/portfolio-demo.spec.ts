@@ -92,6 +92,8 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeVisible();
+  await expect(page.getByText(/لم تُراجع بقية مدن المملكة مراجعة كاملة بعد/)).toBeVisible();
+  await expect(page.getByText(/كسياق تجريبي/)).toHaveCount(0);
   await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
@@ -209,6 +211,7 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.getByText("Independent portfolio demo. Not a government service.")).toBeVisible();
+  await expect(page.getByText(/Other Saudi cities have not yet been fully reviewed/)).toBeVisible();
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
@@ -290,6 +293,7 @@ test("About and mobile views keep the full bilingual demo boundary without a ban
   await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "حول دليل تأسيس المنشآت" })).toBeVisible();
   await expect(page.getByText(/هذا مشروع مستقل غير تابع لأي جهة حكومية/)).toBeVisible();
+  await expect(page.getByText(/لم تُراجع بقية مدن المملكة مراجعة كاملة بعد/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "كيف يمكن أن يتطور الدليل؟" })).toBeVisible();
   await expect(page.getByText(/هذه رؤية مستقبلية وليست ميزات متاحة الآن/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
