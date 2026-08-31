@@ -1,6 +1,6 @@
-FROM ghcr.io/astral-sh/uv:0.12.2 AS uv
+FROM ghcr.io/astral-sh/uv:0.12.7 AS uv
 
-FROM python:3.13-slim-bookworm AS builder
+FROM python:3.14-slim-bookworm AS builder
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
@@ -26,7 +26,7 @@ COPY src/saudi_business_launch_navigator/rules/__init__.py \
 RUN uv sync --frozen --no-dev --no-editable
 
 
-FROM python:3.13-slim-bookworm AS runtime
+FROM python:3.14-slim-bookworm AS runtime
 
 ENV PATH="/app/.venv/bin:${PATH}" \
     PYTHONDONTWRITEBYTECODE=1 \
