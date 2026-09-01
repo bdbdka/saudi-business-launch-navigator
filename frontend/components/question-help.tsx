@@ -14,6 +14,7 @@ export function QuestionHelp({
   labels: { meaning: string; why: string; example: string };
 }) {
   const [open, setOpen] = useState(false);
+  const [pinned, setPinned] = useState(false);
   const rootRef = useRef<HTMLSpanElement>(null);
   const helpId = useId();
 
@@ -23,11 +24,13 @@ export function QuestionHelp({
     const closeOutside = (event: PointerEvent) => {
       if (!rootRef.current?.contains(event.target as Node)) {
         setOpen(false);
+        setPinned(false);
       }
     };
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setOpen(false);
+        setPinned(false);
       }
     };
 
@@ -43,14 +46,11 @@ export function QuestionHelp({
     <span
       className="question-help"
       ref={rootRef}
-      onPointerEnter={(event) => {
-        if (event.pointerType === "mouse") setOpen(true);
-      }}
-      onPointerLeave={(event) => {
-        if (event.pointerType === "mouse") setOpen(false);
-      }}
       onBlur={(event) => {
-        if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+        if (!event.currentTarget.contains(event.relatedTarget)) {
+          setOpen(false);
+          setPinned(false);
+        }
       }}
     >
       <span className="question-legend-row">
@@ -63,7 +63,19 @@ export function QuestionHelp({
             aria-expanded={open}
             aria-controls={helpId}
             onFocus={() => setOpen(true)}
-            onClick={() => setOpen(true)}
+            onPointerEnter={(event) => {
+              if (event.pointerType === "mouse") setOpen(true);
+            }}
+            onPointerLeave={(event) => {
+              if (event.pointerType === "mouse" && !pinned) setOpen(false);
+            }}
+            onClick={() => {
+              setPinned((current) => {
+                const next = !current;
+                setOpen(next);
+                return next;
+              });
+            }}
           >
             <span aria-hidden="true">ⓘ</span>
           </button>

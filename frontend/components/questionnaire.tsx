@@ -80,8 +80,6 @@ export function Questionnaire({
       : answerLabels.true_en === copy.questionnaire.yes && answerLabels.false_en === copy.questionnaire.no)
     : false;
   const progressText = `${copy.questionnaire.question} ${formatNumber(currentIndex + 1, locale)} ${copy.questionnaire.of} ${formatNumber(questions.length, locale)}`;
-  const selectedAnswer = selectedAnswerLabel(question, answer, hasAnswer, locale);
-
   return (
     <section className="question-card" aria-labelledby="question-title" aria-busy={submitting}>
       <h1 className="sr-only">{copy.workflow.questions} — {activityName}</h1>
@@ -155,11 +153,6 @@ export function Questionnaire({
           ) : null}
           <AnswerButton label={unknownLabel} selected={hasAnswer && answer === null} onClick={() => onAnswer(question.fact_code, null)} />
         </div>
-        <p className="selected-answer-feedback" aria-live="polite">
-          {selectedAnswer
-            ? copy.questionnaire.selectedTemplate.replace("{answer}", selectedAnswer)
-            : "\u00a0"}
-        </p>
       </fieldset>
 
       <div className="question-actions">
@@ -172,31 +165,6 @@ export function Questionnaire({
       </div>
     </section>
   );
-}
-
-function selectedAnswerLabel(
-  question: Question,
-  answer: boolean | string | null | undefined,
-  hasAnswer: boolean,
-  locale: Locale,
-): string | null {
-  if (!hasAnswer) return null;
-  if (answer === null) {
-    return locale === "ar" ? question.unknown_label_ar : question.unknown_label_en;
-  }
-  if (typeof answer === "string") {
-    const option = question.options.find((item) => item.value === answer);
-    return option ? (locale === "ar" ? option.label_ar : option.label_en) : null;
-  }
-  if (!question.answer_labels) return null;
-  if (answer) {
-    return locale === "ar"
-      ? question.answer_labels.true_ar
-      : question.answer_labels.true_en;
-  }
-  return locale === "ar"
-    ? question.answer_labels.false_ar
-    : question.answer_labels.false_en;
 }
 
 function AnswerButton({

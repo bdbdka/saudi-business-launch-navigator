@@ -307,6 +307,8 @@ describe("API-driven guided workflow", () => {
         .filter((button) => button !== unknown && button.classList.contains("answer-button"))
         .every((button) => button.getAttribute("aria-pressed") === "false"),
     ).toBe(true);
+    expect(document.querySelector(".selected-answer-feedback")).not.toBeInTheDocument();
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "التالي" })).toBeEnabled();
   });
 
@@ -358,8 +360,21 @@ describe("API-driven guided workflow", () => {
 
     const helpRoot = helpButton.closest(".question-help")!;
     fireEvent.pointerEnter(helpRoot, { pointerType: "mouse" });
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+
+    fireEvent.pointerEnter(helpButton, { pointerType: "mouse" });
     expect(screen.getByRole("note")).toHaveTextContent(helpText);
-    fireEvent.pointerLeave(helpRoot, { pointerType: "mouse" });
+    fireEvent.pointerLeave(helpButton, { pointerType: "mouse" });
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+
+    await user.click(helpButton);
+    expect(screen.getByRole("note")).toHaveTextContent(helpText);
+    await user.click(helpButton);
+    expect(screen.queryByRole("note")).not.toBeInTheDocument();
+
+    await user.keyboard("{Enter}");
+    expect(screen.getByRole("note")).toHaveTextContent(helpText);
+    await user.keyboard(" ");
     expect(screen.queryByRole("note")).not.toBeInTheDocument();
 
     await user.click(helpButton);

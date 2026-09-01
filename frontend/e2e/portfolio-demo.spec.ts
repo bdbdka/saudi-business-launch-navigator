@@ -154,10 +154,19 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expect(progress).toHaveAttribute("aria-valuemax", "8");
   await expect(page.getByText("السؤال ١ من ٨", { exact: true })).toBeVisible();
   const firstHelp = page.getByRole("button", { name: "توضيح المقصود بالسؤال" });
-  await firstHelp.click();
+  await page.locator(".question-title-text").hover();
+  await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await firstHelp.hover();
+  await expect(page.locator(".question-tooltip")).toBeVisible();
+  await page.locator(".progress-row").hover();
+  await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await firstHelp.focus();
   await expect(page.getByText("ما المقصود؟", { exact: true })).toBeVisible();
   await expect(page.getByText("ليش نسألك؟", { exact: true })).toBeVisible();
   await expect(page.getByText("مثال", { exact: true })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await firstHelp.press("Enter");
+  await expect(page.locator(".question-tooltip")).toBeVisible();
   await page.keyboard.press("Escape");
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
@@ -375,7 +384,8 @@ test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", 
   await page.getByRole("button", { name: "توضيح المقصود بالسؤال" }).click();
   await expect(page.getByText("ما المقصود؟", { exact: true })).toBeVisible();
   await expectNoHorizontalOverflow(page);
-  await page.keyboard.press("Escape");
+  await page.locator(".progress-row").click();
+  await expect(page.locator(".question-tooltip")).toHaveCount(0);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
@@ -454,6 +464,9 @@ async function chooseAndVerifyCompactOption(page: Page, verifyHover: boolean): P
   expect(boxes.every((box) => box.height <= 54 && box.width < 200)).toBe(true);
 
   const first = options.first();
+  const actionsTopBefore = await page.locator(".question-actions").evaluate(
+    (element) => element.getBoundingClientRect().top,
+  );
   if (verifyHover) {
     const defaultStyle = await first.evaluate((element) => {
       const style = getComputedStyle(element);
@@ -484,6 +497,12 @@ async function chooseAndVerifyCompactOption(page: Page, verifyHover: boolean): P
   await first.click();
   await expect(first).toHaveAttribute("aria-pressed", "true");
   await expect(first.locator(".answer-selected-mark")).toBeVisible();
+  await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await expect(page.locator(".selected-answer-feedback")).toHaveCount(0);
+  const actionsTopAfter = await page.locator(".question-actions").evaluate(
+    (element) => element.getBoundingClientRect().top,
+  );
+  expect(Math.abs(actionsTopAfter - actionsTopBefore)).toBeLessThanOrEqual(1);
   const selectedBackground = await first.evaluate((element) => getComputedStyle(element).backgroundColor);
   expect(selectedBackground).not.toBe("rgb(11, 90, 71)");
   expect(selectedBackground).not.toBe("rgb(7, 69, 54)");

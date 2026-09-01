@@ -272,7 +272,7 @@ input:focus-visible,
 .questionnaire-intro { padding: 12px 14px; margin: 0 0 22px; color: var(--muted); background: var(--green-soft); border-radius: 9px; font-size: 0.9rem; line-height: 1.7; }
 .question-card legend:focus { outline: 3px solid #07513f; outline-offset: 5px; }
 .results-heading h1:focus { outline: none; }
-.question-help { display: grid; width: 100%; }
+.question-help { position: relative; display: block; width: 100%; }
 .question-legend-row {
   display: flex;
   width: fit-content;
@@ -301,9 +301,12 @@ input:focus-visible,
 .question-help-button:hover { background: var(--green-soft); }
 .question-tooltip {
   display: block;
+  position: absolute;
+  z-index: 20;
+  inset-block-start: calc(100% + 8px);
+  inset-inline-start: 0;
   width: min(360px, 100%);
   padding: 14px 16px;
-  margin-top: 8px;
   color: var(--ink);
   background: var(--paper);
   border: 1px solid #cbd9d3;
@@ -354,7 +357,6 @@ input:focus-visible,
   .activity-choice:hover, .answer-button:hover { background: #fafcfb; border-color: #8eb5a7; }
   .activity-choice.selected:hover, .answer-button.selected:hover { background: #eef6f2; border-color: var(--green); }
 }
-.selected-answer-feedback { min-height: 24px; margin: 12px 0 0; color: var(--green); font-size: 0.82rem; font-weight: 750; }
 .question-actions { display: flex; width: min(100%, 440px); justify-content: space-between; gap: 12px; margin: 28px auto 0; }
 .question-actions .button { min-width: 132px; flex: 1; }
 .empty-questionnaire { text-align: center; }
