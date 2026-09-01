@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { ActivitySelector } from "@/components/activity-selector";
 import { CatalogPresentationProvider } from "@/components/catalog-mode-context";
@@ -9,7 +9,11 @@ import { Header } from "@/components/header";
 import { Footer, Hero } from "@/components/landing";
 import { OptionalAIEntry } from "@/components/optional-ai-entry";
 import { Questionnaire } from "@/components/questionnaire";
-import { NavigatorAPIError, navigatorAPI } from "@/lib/api/client";
+import {
+  NavigatorAPIError,
+  navigatorAPI,
+  subscribeServiceWarming,
+} from "@/lib/api/client";
 import { catalogBoundaryMatchesBuild } from "@/lib/catalog-presentation";
 import type {
   Activity,
@@ -31,6 +35,7 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
   const [catalogBoundary, setCatalogBoundary] = useState<CatalogBoundary | null>(null);
   const [activitiesLoading, setActivitiesLoading] = useState(true);
   const [activitiesFailed, setActivitiesFailed] = useState(false);
+  const [serviceWarming, setServiceWarming] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
   const [questions, setQuestions] = useState<Question[]>([]);
   const [questionnaireReady, setQuestionnaireReady] = useState(false);
@@ -46,6 +51,7 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
   const [aiUnavailable, setAIUnavailable] = useState(false);
   const [aiClarifications, setAIClarifications] = useState<string[]>([]);
   const [aiExplanation, setAIExplanation] = useState<string[]>([]);
+  const initialActivitiesRequest = useRef<ReturnType<typeof navigatorAPI.activities> | null>(null);
   const copy = useMemo(() => getDictionary(locale), [locale]);
   const acceptCatalogBoundary = useCallback((metadata: CatalogBoundary) => {
     if (!catalogBoundaryMatchesBuild(metadata)) {
@@ -58,6 +64,8 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
     document.documentElement.lang = locale;
     document.documentElement.dir = locale === "ar" ? "rtl" : "ltr";
   }, [locale]);
+
+  useEffect(() => subscribeServiceWarming(setServiceWarming), []);
 
   const loadActivities = useCallback(async () => {
     setActivitiesLoading(true);
@@ -75,7 +83,9 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
 
   useEffect(() => {
     let cancelled = false;
-    navigatorAPI.activities()
+    initialActivitiesRequest.current ??= navigatorAPI.warm()
+      .then(() => navigatorAPI.activities());
+    initialActivitiesRequest.current
       .then((response) => {
         if (cancelled) return;
         acceptCatalogBoundary(response.metadata);
@@ -148,6 +158,7 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
   async function describeBusiness() {
     const value = aiText.trim();
     if (!value) return;
+    let completed = false;
     setAILoading(true);
     setAIUnavailable(false);
     setAIClarifications([]);
@@ -179,6 +190,7 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
         const activity = activities.find((item) => item.code === response.interpretation.activity_code);
         if (activity) await selectActivity(activity, interpretedAnswers);
       }
+      completed = true;
     } catch (error) {
       if (
         error instanceof NavigatorAPIError &&
@@ -189,7 +201,9 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
         setWorkflowError(displayError(error, copy.error.backend, copy.error.validation));
       }
     } finally {
-      setAIText("");
+      if (completed) {
+        setAIText((current) => current.trim() === value ? "" : current);
+      }
       setAILoading(false);
     }
   }
@@ -250,14 +264,24 @@ export function NavigatorApp({ initialLocale }: { initialLocale: Locale }) {
       <main id="main-content" tabIndex={-1}>
         {stage === "activities" && <Hero copy={copy} locale={locale} />}
         <section className="navigator-section" id="navigator">
-          <div className="section-shell">
+          <div className={`section-shell${stage === "results" ? " results-shell" : ""}`}>
             <div className="workflow-focus">
+              {serviceWarming && (
+                <div className="service-warming" role="status" aria-live="polite">
+                  <span className="spinner" aria-hidden="true" />
+                  <span>
+                    <strong>{copy.serviceWarming.title}</strong>
+                    <small>{copy.serviceWarming.body}</small>
+                  </span>
+                </div>
+              )}
               {stage === "activities" && (
                 <ActivitySelector
                   activities={activities}
                   locale={locale}
                   copy={copy}
                   loading={activitiesLoading}
+                  warming={serviceWarming}
                   error={activitiesFailed ? copy.error.backend : null}
                   onRetry={() => void loadActivities()}
                   onSelect={(activity) => void selectActivity(activity)}

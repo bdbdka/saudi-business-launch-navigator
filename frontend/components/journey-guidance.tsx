@@ -129,11 +129,18 @@ function JourneyItem({
         <h4>{title}</h4>
         {productGuidance ? (
           <>
-            <p><strong>{productCopy.meaningLabel}</strong>{" "}{productGuidance.meaning}</p>
-            <p><strong>{productCopy.importanceLabel}</strong>{" "}{productGuidance.importance}</p>
-            <p className="verification-action">
-              <strong>{productCopy.reviewLabel}</strong>{" "}{productGuidance.review}
-            </p>
+            <div className="card-copy-section">
+              <span className="card-copy-label">{productCopy.meaningLabel}</span>
+              <p>{productGuidance.meaning}</p>
+            </div>
+            <div className="card-copy-section">
+              <span className="card-copy-label">{productCopy.importanceLabel}</span>
+              <p>{productGuidance.importance}</p>
+            </div>
+            <div className="card-copy-section verification-action">
+              <span className="card-copy-label">{productCopy.reviewLabel}</span>
+              <p>{productGuidance.review}</p>
+            </div>
           </>
         ) : (
           <p>{productCopy.reviewFallback}</p>

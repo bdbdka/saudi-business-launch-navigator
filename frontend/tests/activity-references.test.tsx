@@ -110,7 +110,7 @@ describe("official activity references", () => {
     expect(within(reference).getByRole("heading", { name: "المصدر الرسمي للنشاط" })).toBeInTheDocument();
     expect(reference).toHaveTextContent("محلات تقديم المشروبات الكوفي شوب");
     expect(reference).toHaveTextContent(
-      "يمكنك مراجعة صفحة النشاط الرسمية في منصة بلدي للاطلاع على وصف النشاط والمتطلبات المنشورة للنشاط.",
+      "يمكنك مراجعة صفحة النشاط الرسمية في منصة بلدي للاطلاع على وصف النشاط وتفاصيله المنشورة.",
     );
     expect(reference).toHaveTextContent("وزارة البلديات والإسكان — منصة بلدي");
     const external = within(reference).getByRole("link", { name: /فتح صفحة النشاط الرسمية/ });
@@ -139,7 +139,7 @@ describe("official activity references", () => {
     expect(within(reference).getByRole("heading", { name: "Official activity reference" })).toBeInTheDocument();
     expect(reference).toHaveTextContent("Cloud kitchen for take-out meal preparation");
     expect(reference).toHaveTextContent(
-      "You can review the official Balady activity page for the activity description and published activity requirements.",
+      "You can review the official Balady activity page for its published activity description and details.",
     );
     expect(reference).toHaveTextContent("Ministry of Municipalities and Housing — Balady");
     expect(within(reference).getByRole("link", { name: /Open official activity page/ })).toHaveAttribute(

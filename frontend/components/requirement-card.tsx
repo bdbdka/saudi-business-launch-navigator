@@ -63,14 +63,24 @@ export function RequirementCard({
   return (
     <article className={`requirement-item ${variant}${completed ? " user-completed" : ""}`}>
       <h4>{title}</h4>
-      <p className="requirement-description">
-        <strong>{policy.isPortfolioDemo ? productCopy.whatLabel : copy.results.what}</strong>{" "}
-        {description}
-      </p>
-      <p className="requirement-reason">
-        <strong>{policy.isPortfolioDemo ? productCopy.whyLabel : copy.results.why}</strong>{" "}
-        {why}
-      </p>
+      {policy.isPortfolioDemo ? (
+        <>
+          <p className="requirement-description">{description}</p>
+          <div className="card-copy-section requirement-reason">
+            <span className="card-copy-label">{productCopy.whyLabel}</span>
+            <p>{why}</p>
+          </div>
+        </>
+      ) : (
+        <>
+          <p className="requirement-description">
+            <strong>{copy.results.what}</strong>{" "}{description}
+          </p>
+          <p className="requirement-reason">
+            <strong>{copy.results.why}</strong>{" "}{why}
+          </p>
+        </>
+      )}
 
       {variant === "missing" && item.evaluated_facts
         .filter((fact) => item.missing_fact_codes.includes(fact.fact_code))
@@ -84,10 +94,10 @@ export function RequirementCard({
         ))}
 
       {variant === "applicable" && productGuidance && (
-        <p className="verification-action">
-          <strong>{productCopy.nextLabel}</strong>{" "}
-          {productGuidance.next}
-        </p>
+        <div className="card-copy-section verification-action">
+          <span className="card-copy-label">{productCopy.nextLabel}</span>
+          <p>{productGuidance.next}</p>
+        </div>
       )}
 
       {variant === "applicable" && item.applicability_status === "APPLIES" && !policy.isPortfolioDemo && (
@@ -172,12 +182,11 @@ function demoReason(
 ): string {
   const fallback = guidance?.why
     ?? (locale === "ar"
-      ? "ترتبط هذه الخطوة بإجاباتك الحالية."
-      : "This action is connected to your current answers.");
-  if (item.reason_code === "UNCONDITIONAL_CURRENT_REQUIREMENT") return fallback;
+      ? "تساعدك هذه الخطوة على تنظيم ما تحتاج إلى متابعته."
+      : "This step helps you organize what needs follow-up.");
 
   const fact = item.evaluated_facts[0];
-  if (!fact) return fallback;
+  if (!fact || item.reason_code === "UNCONDITIONAL_CURRENT_REQUIREMENT") return fallback;
   const question = locale === "ar" ? fact.question_ar : fact.question_en;
   if (item.reason_code === "MISSING_REQUIRED_FACT" || fact.supplied_value === null) {
     return missingTemplate.replace("{question}", question);
@@ -186,12 +195,10 @@ function demoReason(
   const answer = answerLabel(fact, locale);
   if (item.applicability_status === "DOES_NOT_APPLY") {
     return locale === "ar"
-      ? `لم تظهر ضمن خطواتك الأساسية لأن إجابتك عن «${question}» كانت «${answer}».`
-      : `It was not included in your main actions because you answered “${answer}” to “${question}”.`;
+      ? `لم نضفها إلى خطواتك الحالية لأن إجابتك عن «${question}» كانت «${answer}».`
+      : `It was not added to your current steps because you answered “${answer}” to “${question}”.`;
   }
-  return locale === "ar"
-    ? `ظهرت لأن إجابتك عن «${question}» كانت «${answer}».`
-    : `It appeared because you answered “${answer}” to “${question}”.`;
+  return fallback;
 }
 
 function humanReason(

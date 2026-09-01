@@ -76,11 +76,6 @@ export function ChecklistResults({
         </div>
       </div>
 
-      {isDemo && (
-        <p className="demo-result-scope-note" data-testid="demo-result-scope-note">
-          {policy.text.resultScopeNote}
-        </p>
-      )}
       <ResultSummary
         result={result}
         completedCount={completedCount}
@@ -88,6 +83,11 @@ export function ChecklistResults({
         copy={copy}
         onEdit={onEdit}
       />
+      {isDemo && (
+        <p className="demo-result-scope-note" data-testid="demo-result-scope-note">
+          {policy.text.resultScopeNote}
+        </p>
+      )}
 
       <section className="result-group" aria-labelledby="required-title">
         <div className="bucket-heading">

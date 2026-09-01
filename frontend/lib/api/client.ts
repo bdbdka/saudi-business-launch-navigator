@@ -57,6 +57,16 @@ function isLoopbackHostname(hostname: string): boolean {
 
 const API_BASE_URL = resolveAPIBaseURL();
 const REQUEST_TIMEOUT_MS = 10_000;
+const SERVICE_RECOVERY_LIMIT_MS = 70_000;
+const READY_PROBE_TIMEOUT_MS = 6_000;
+const READY_PROBE_DELAYS_MS = [1_500, 2_500, 4_000, 5_000] as const;
+
+type ServiceWarmingListener = (warming: boolean) => void;
+
+const warmingListeners = new Set<ServiceWarmingListener>();
+let serviceWarming = false;
+let recoveryPromise: Promise<boolean> | null = null;
+let warmPromise: Promise<void> | null = null;
 
 export class NavigatorAPIError extends Error {
   constructor(
@@ -70,19 +80,24 @@ export class NavigatorAPIError extends Error {
   }
 }
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function executeRequest<T>(
+  path: string,
+  init: RequestInit | undefined,
+  timeoutMs: number,
+): Promise<T> {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  const headers = new Headers(init?.headers);
+  if (init?.body !== undefined && init.body !== null && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
   try {
     const response = await fetch(`${API_BASE_URL}${path}`, {
       ...init,
       cache: "no-store",
       credentials: "omit",
       signal: controller.signal,
-      headers: {
-        "Content-Type": "application/json",
-        ...init?.headers,
-      },
+      headers,
     });
     const requestId = response.headers.get("X-Request-ID");
     if (!response.ok) {
@@ -111,7 +126,109 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   }
 }
 
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const deadline = Date.now() + SERVICE_RECOVERY_LIMIT_MS;
+  try {
+    return await executeRequest<T>(path, init, REQUEST_TIMEOUT_MS);
+  } catch (error) {
+    if (!isTransientAvailabilityError(error)) throw error;
+    const ready = await recoverService(deadline);
+    const remainingMs = deadline - Date.now();
+    if (!ready || remainingMs <= 0) throw error;
+    return executeRequest<T>(path, init, Math.min(REQUEST_TIMEOUT_MS, remainingMs));
+  }
+}
+
+async function warmService(): Promise<void> {
+  if (warmPromise) return warmPromise;
+  const deadline = Date.now() + SERVICE_RECOVERY_LIMIT_MS;
+  warmPromise = (async () => {
+    if (await probeReadiness(Math.min(REQUEST_TIMEOUT_MS, SERVICE_RECOVERY_LIMIT_MS))) return;
+    if (!(await recoverService(deadline))) {
+      throw new NavigatorAPIError(
+        "BACKEND_UNAVAILABLE",
+        "The Navigator service did not become ready in time.",
+        null,
+        null,
+      );
+    }
+  })().finally(() => {
+    warmPromise = null;
+  });
+  return warmPromise;
+}
+
+async function recoverService(deadline: number): Promise<boolean> {
+  if (recoveryPromise) return recoveryPromise;
+  setServiceWarming(true);
+  recoveryPromise = pollUntilReady(deadline).finally(() => {
+    recoveryPromise = null;
+    setServiceWarming(false);
+  });
+  return recoveryPromise;
+}
+
+async function pollUntilReady(deadline: number): Promise<boolean> {
+  let attempt = 0;
+  while (Date.now() < deadline) {
+    const delay = READY_PROBE_DELAYS_MS[Math.min(attempt, READY_PROBE_DELAYS_MS.length - 1)];
+    const delayMs = Math.min(delay, Math.max(0, deadline - Date.now()));
+    if (delayMs > 0) await sleep(delayMs);
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) return false;
+    if (await probeReadiness(Math.min(READY_PROBE_TIMEOUT_MS, remainingMs))) return true;
+    attempt += 1;
+  }
+  return false;
+}
+
+async function probeReadiness(timeoutMs: number): Promise<boolean> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const response = await fetch(`${API_BASE_URL}/health/ready`, {
+      cache: "no-store",
+      credentials: "omit",
+      signal: controller.signal,
+    });
+    return response.ok;
+  } catch {
+    return false;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function isTransientAvailabilityError(error: unknown): boolean {
+  if (!(error instanceof NavigatorAPIError)) return false;
+  if (error.code.startsWith("AI_")) return false;
+  return error.code === "TIMEOUT"
+    || error.code === "BACKEND_UNAVAILABLE"
+    || error.status === 502
+    || error.status === 503
+    || error.status === 504;
+}
+
+function setServiceWarming(warming: boolean): void {
+  if (serviceWarming === warming) return;
+  serviceWarming = warming;
+  for (const listener of warmingListeners) listener(warming);
+}
+
+function sleep(delayMs: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, delayMs));
+}
+
+export function subscribeServiceWarming(listener: ServiceWarmingListener): () => void {
+  warmingListeners.add(listener);
+  listener(serviceWarming);
+  return () => warmingListeners.delete(listener);
+}
+
 export const navigatorAPI = {
+  warm(): Promise<void> {
+    return warmService();
+  },
   activities(): Promise<ActivitiesResponse> {
     return request("/api/v1/activities");
   },

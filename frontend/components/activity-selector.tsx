@@ -10,6 +10,7 @@ export function ActivitySelector({
   locale,
   copy,
   loading,
+  warming,
   error,
   onRetry,
   onSelect,
@@ -18,6 +19,7 @@ export function ActivitySelector({
   locale: Locale;
   copy: Dictionary;
   loading: boolean;
+  warming: boolean;
   error: string | null;
   onRetry: () => void;
   onSelect: (activity: Activity) => void;
@@ -39,7 +41,7 @@ export function ActivitySelector({
         <p>{copy.activities.body}</p>
       </div>
       {loading ? (
-        <div role="status" aria-live="polite">
+        <div role={warming ? undefined : "status"} aria-live={warming ? undefined : "polite"}>
           <span className="sr-only">{copy.activities.loading}</span>
           <div className="activity-grid" aria-hidden="true">
             {[1, 2, 3].map((item) => <div className="activity-choice skeleton" key={item} />)}

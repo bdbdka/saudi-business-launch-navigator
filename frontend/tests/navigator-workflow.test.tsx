@@ -18,6 +18,7 @@ vi.mock("@/lib/api/client", async () => {
   return {
     ...actual,
     navigatorAPI: {
+      warm: vi.fn(),
       activities: vi.fn(),
       questionnaire: vi.fn(),
       checklist: vi.fn(),
@@ -30,6 +31,7 @@ const api = vi.mocked(navigatorAPI);
 
 beforeEach(() => {
   vi.clearAllMocks();
+  api.warm.mockResolvedValue();
   api.activities.mockResolvedValue(activitiesResponse);
   api.questionnaire.mockImplementation(async (code) => {
     const activity = activities.find((item) => item.code === code);
@@ -55,7 +57,7 @@ async function startAndSelect(activityName: string) {
     await user.click(screen.getByRole("button", { name: label }));
     await user.click(screen.getByRole("button", { name: "التالي" }));
   }
-  await screen.findByText("هل ستوظف موظفين أو عمالًا للعمل في المنشأة؟");
+  await screen.findByText("هل ستوظف المنشأة موظفين أو عمالًا؟");
   return user;
 }
 
@@ -95,7 +97,7 @@ describe("Arabic-first simplified shell", () => {
     await waitFor(() => expect(api.activities).toHaveBeenCalled());
     expect(screen.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeInTheDocument();
     expect(screen.getByText("احصل على خطوات مرتبة بناءً على إجاباتك")).toBeInTheDocument();
-    expect(screen.getByText(/يركز نطاق البحث الحالي على المقاهي والمطاعم والمطابخ السحابية/)).toBeInTheDocument();
+    expect(screen.getByText(/تغطي النسخة الحالية المقاهي والمطاعم والمطابخ السحابية/)).toBeInTheDocument();
     expect(screen.queryByText(/النطاق الحالي هو المقاهي/)).not.toBeInTheDocument();
     expect(screen.queryByText(demoMetadata.warning_ar)).not.toBeInTheDocument();
     expect(screen.queryByTestId("portfolio-demo-notice")).not.toBeInTheDocument();
@@ -109,11 +111,11 @@ describe("Arabic-first simplified shell", () => {
     await screen.findByRole("heading", { level: 1, name: "خطوات بدء مشروعك" });
     expect(screen.getAllByTestId("demo-result-scope-note")).toHaveLength(1);
     expect(screen.getByTestId("demo-result-scope-note")).toHaveTextContent(
-      "تعرض هذه القائمة بيانات نموذجية لشرح آلية الدليل. مرجع النشاط الرسمي أدناه مستقل ولا يثبت أن عناصر القائمة النموذجية متطلبات منشورة.",
+      "تستخدم هذه النسخة بيانات نموذجية لشرح طريقة عمل الدليل، ولا تمثل خطوات القائمة متطلبات رسمية منشورة. راجع مرجع النشاط الرسمي أدناه للمعلومات المنشورة عن النشاط.",
     );
     expect(
-      screen.getByTestId("demo-result-scope-note").compareDocumentPosition(
-        screen.getByRole("heading", { name: "رتّبنا نتيجتك بناءً على إجاباتك" }),
+      screen.getByRole("heading", { name: "رتّبنا لك الخطوات بناءً على إجاباتك" }).compareDocumentPosition(
+        screen.getByTestId("demo-result-scope-note"),
       ) & Node.DOCUMENT_POSITION_FOLLOWING,
     ).toBeTruthy();
     expect(screen.getByText("تقدمك في خطوات القائمة")).toBeInTheDocument();
@@ -136,12 +138,12 @@ describe("Arabic-first simplified shell", () => {
     );
     expect(screen.getByText("لا نحتاج إلى إجابة إضافية لتحديد الخطوات الآن.")).toBeInTheDocument();
     expect(screen.getByRole("progressbar", { name: "تقدم إنجاز خطوات القائمة" })).toBeInTheDocument();
-    const outcome = screen.getByRole("region", { name: "متابعة خطواتك مستمرة" });
+    const outcome = screen.getByRole("region", { name: "ما زالت لديك خطوات لم تحددها كمنجزة" });
     expect(within(outcome).getByText(
-      "وضعت علامة على ٠ من أصل ٧ خطوة.",
+      "وضعت علامة إنجاز على ٠ من أصل ٧ خطوة.",
     )).toBeInTheDocument();
     expect(within(outcome.querySelector(".final-outcome-state")!).queryByText(
-      "وضعت علامة على ٠ من أصل ٧ خطوة.",
+      "وضعت علامة إنجاز على ٠ من أصل ٧ خطوة.",
     )).not.toBeInTheDocument();
     expect(screen.queryByText(/متطلبات تنطبق على مشروعك/)).not.toBeInTheDocument();
     expect(screen.queryByText("جهة افتراضية")).not.toBeInTheDocument();
@@ -154,9 +156,9 @@ describe("Arabic-first simplified shell", () => {
     expect(document.querySelectorAll('a[href*=".invalid"]')).toHaveLength(0);
     expect(document.querySelectorAll('a[href*="official.example.gov.sa"]')).toHaveLength(0);
     expect(document.querySelectorAll('a[href^="https://"]')).toHaveLength(1);
-    const completionBoxes = screen.getAllByRole("checkbox", { name: /أنجزت هذا/ });
+    const completionBoxes = screen.getAllByRole("checkbox", { name: /أنجزت هذه الخطوة/ });
     for (const checkbox of completionBoxes) await userEvent.click(checkbox);
-    expect(screen.getByRole("region", { name: "أنهيت متابعة خطوات القائمة" })).toBeInTheDocument();
+    expect(screen.getByRole("region", { name: "حددت جميع خطوات القائمة كمنجزة" })).toBeInTheDocument();
     await userEvent.click(screen.getByRole("button", { name: "Switch to English" }));
     expect(screen.getByRole("region", { name: "You finished following up on the checklist steps" })).toBeInTheDocument();
     expect(screen.getByText("We do not need another answer to select the steps right now.")).toBeInTheDocument();
@@ -184,7 +186,7 @@ describe("Arabic-first simplified shell", () => {
     ]);
     expect(
       screen.getByText(
-        "يركز نطاق البحث الحالي على المقاهي والمطاعم والمطابخ السحابية في الرياض وجدة. لم تُراجع بقية مدن المملكة مراجعة كاملة بعد، وهذا لا يعني أن قواعدها مختلفة ولا أن تطابقها على مستوى المملكة قد تم التحقق منه. سنضيف مدنًا أخرى بعد بحث المصادر الحكومية الرسمية والتحقق منها.",
+        "تغطي النسخة الحالية المقاهي والمطاعم والمطابخ السحابية في جدة والرياض فقط. لم نراجع بعد المتطلبات المحلية لبقية مدن المملكة، لذلك لا نفترض أن النتائج تنطبق عليها تلقائيًا. وإذا وُجدت فروقات محلية، فلن نعرضها إلا بعد التحقق من مصدر رسمي.",
       ),
     ).toBeInTheDocument();
     const coffeeShop = await screen.findByRole("button", { name: "مقهى" });
@@ -204,7 +206,7 @@ describe("Arabic-first simplified shell", () => {
     expect(screen.getByRole("link", { name: "Saudi Business Launch Navigator" })).toHaveAttribute("href", "/en");
     expect(screen.getByRole("heading", { level: 1 })).toHaveTextContent("Understand your business-launch steps clearly");
     expect(screen.getByText(/Answer a few short questions about your business/)).toBeInTheDocument();
-    expect(screen.getByText(/The current research scope covers coffee shops, restaurants, and cloud kitchens/)).toBeInTheDocument();
+    expect(screen.getByText(/The current version covers coffee shops, restaurants, and cloud kitchens/)).toBeInTheDocument();
     expect(await screen.findByRole("button", { name: /Coffee shop/ })).toBeInTheDocument();
     await waitFor(() => expect(document.documentElement).toHaveAttribute("dir", "ltr"));
     expect(document.documentElement).toHaveAttribute("lang", "en");
@@ -439,12 +441,7 @@ describe("API-driven guided workflow", () => {
     const required = screen.getByRole("heading", { name: "ابدأ بهذه الخطوات" }).closest("section")!;
     expect(required.compareDocumentPosition(missing) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
     await userEvent.click(screen.getAllByRole("button", { name: "أجب الآن" })[0]);
-    expect(
-      screen.getByText(
-        questionsByActivity.cloud_kitchen.find((question) => question.purpose === "APPLICABILITY")!
-          .question_ar,
-      ),
-    ).toBeInTheDocument();
+    expect(screen.getByText("هل ستوظف المنشأة موظفين أو عمالًا؟")).toBeInTheDocument();
   });
 
   it("shows a concise default card and keeps evidence details available on request", async () => {
@@ -572,7 +569,7 @@ describe("API-driven guided workflow", () => {
     await startAndSelect("مقهى");
     await answerSequence(["نعم", "نعم", "نعم", "تأكدت عبر الهيئة أنه إلزامي"]);
     const required = (await screen.findByRole("heading", { name: "ابدأ بهذه الخطوات" })).closest("section")!;
-    const checkboxes = within(required).getAllByRole("checkbox", { name: /أنجزت هذا/ });
+    const checkboxes = within(required).getAllByRole("checkbox", { name: /أنجزت هذه الخطوة/ });
     expect(checkboxes).toHaveLength(4);
     expect(screen.getByText("٤ متطلبات تنطبق على مشروعك")).toBeInTheDocument();
     expect(screen.getByText("أنجزت ٠ من ٤")).toBeInTheDocument();
@@ -599,8 +596,8 @@ describe("API-driven guided workflow", () => {
     expect(screen.getByText("أنجزت ٢ من ٤")).toBeInTheDocument();
     expect(screen.getByText("متبقي ٢")).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "2");
-    expect(checkboxes[0].closest("article")).toHaveTextContent("أنجزته");
-    expect(checkboxes[2].closest("article")).toHaveTextContent("لم تنجزه بعد");
+    expect(checkboxes[0].closest("article")).toHaveTextContent("منجزة");
+    expect(checkboxes[2].closest("article")).toHaveTextContent("غير منجزة");
     const partialOutcome = screen.getByRole("region", { name: "قائمتك ما زالت قيد المتابعة" });
     expect(within(partialOutcome).getByText("أنجزت ٢ من ٤ متطلبات.")).toBeInTheDocument();
     expect(within(partialOutcome).getByText("بقي لديك ٢ متطلبات في قائمتك.")).toBeInTheDocument();
@@ -628,7 +625,7 @@ describe("API-driven guided workflow", () => {
     expect(
       await screen.findByText("تم تحديد قائمتك بناءً على إجاباتك الحالية والمعلومات الموثقة المتاحة في الدليل."),
     ).toBeInTheDocument();
-    const checkboxes = screen.getAllByRole("checkbox", { name: /أنجزت هذا/ });
+    const checkboxes = screen.getAllByRole("checkbox", { name: /أنجزت هذه الخطوة/ });
     expect(checkboxes).toHaveLength(2);
     await userEvent.click(checkboxes[0]);
     await userEvent.click(checkboxes[1]);
@@ -677,7 +674,7 @@ describe("API-driven guided workflow", () => {
     await startAndSelect("مقهى");
     await answerSequence(["نعم", "نعم", "نعم", "تأكدت عبر الهيئة أنه إلزامي"]);
 
-    const checkboxes = await screen.findAllByRole("checkbox", { name: /أنجزت هذا/ });
+    const checkboxes = await screen.findAllByRole("checkbox", { name: /أنجزت هذه الخطوة/ });
     await userEvent.click(checkboxes[0]);
     await userEvent.click(checkboxes[1]);
 
@@ -700,7 +697,7 @@ describe("API-driven guided workflow", () => {
     await startAndSelect("مقهى");
     await answerSequence(["نعم", "نعم", "نعم", "تأكدت عبر الهيئة أنه إلزامي"]);
 
-    const checkboxes = await screen.findAllByRole("checkbox", { name: /أنجزت هذا/ });
+    const checkboxes = await screen.findAllByRole("checkbox", { name: /أنجزت هذه الخطوة/ });
     await userEvent.click(checkboxes[0]);
     await userEvent.click(checkboxes[1]);
 
@@ -724,7 +721,7 @@ describe("API-driven guided workflow", () => {
     render(<NavigatorApp initialLocale="ar" />);
     await startAndSelect("مقهى");
     await answerSequence(["نعم", "نعم", "نعم", "تأكدت عبر الهيئة أنه إلزامي"]);
-    await userEvent.click(await screen.findByRole("checkbox", { name: /أنجزت هذا/ }));
+    await userEvent.click(await screen.findByRole("checkbox", { name: /أنجزت هذه الخطوة/ }));
 
     const finalOutcome = screen.getByRole("region", { name: "أنهيت متابعة متطلبات قائمتك" });
     const answerNow = within(finalOutcome).getByRole("button", { name: "أجب الآن" });
@@ -781,7 +778,7 @@ describe("API-driven guided workflow", () => {
     await userEvent.click(screen.getByRole("button", { name: "عرض النتيجة" }));
     await screen.findByRole("heading", { name: "ابدأ بهذه الخطوات" });
     await userEvent.click(screen.getByRole("button", { name: "ابدأ من جديد" }));
-    expect(await screen.findByRole("heading", { name: "اختر النشاط الأقرب لمشروعك" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "ما نشاط مشروعك؟" })).toBeInTheDocument();
     expect(api.checklist).toHaveBeenCalledTimes(2);
   });
 
@@ -790,7 +787,7 @@ describe("API-driven guided workflow", () => {
     await startAndSelect("مطبخ سحابي");
     await answerSequence(["نعم", "نعم", "نعم", "تأكدت عبر الهيئة أنه إلزامي"]);
     await screen.findByRole("heading", { name: "ابدأ بهذه الخطوات" });
-    await userEvent.click(screen.getAllByRole("checkbox", { name: /أنجزت هذا/ })[0]);
+    await userEvent.click(screen.getAllByRole("checkbox", { name: /أنجزت هذه الخطوة/ })[0]);
     await userEvent.click(screen.getByRole("button", { name: "Switch to English" }));
     expect(document.documentElement).toHaveAttribute("dir", "ltr");
     expect(screen.getByRole("heading", { level: 1, name: "Your business-launch steps" })).toBeInTheDocument();
@@ -802,8 +799,8 @@ describe("API-driven guided workflow", () => {
     expect(screen.getByRole("link", { name: /Start here/ })).toBeInTheDocument();
     expect(screen.getByText("1 of 7 marked complete")).toBeInTheDocument();
     expect(screen.getByText("6 remaining")).toBeInTheDocument();
-    expect(screen.getByText("Marked complete")).toBeInTheDocument();
-    expect(screen.getAllByText("Not marked complete").length).toBeGreaterThan(0);
+    expect(screen.getByText("Completed")).toBeInTheDocument();
+    expect(screen.getAllByText("Not completed").length).toBeGreaterThan(0);
     expect(screen.getByText(/Completion here is for your personal tracking only/)).toBeInTheDocument();
     expect(screen.getByText(/These guidance topics do not count toward progress/)).toBeInTheDocument();
     expect(screen.getByRole("progressbar")).toHaveAttribute("aria-valuenow", "1");
@@ -811,7 +808,7 @@ describe("API-driven guided workflow", () => {
     expect(within(partialOutcome).getByText("You have marked 1 of 7 requirements complete.")).toBeInTheDocument();
     expect(within(partialOutcome).getByText("You have 6 checklist requirements remaining.")).toBeInTheDocument();
 
-    const englishCheckboxes = screen.getAllByRole("checkbox", { name: /I've completed this/ });
+    const englishCheckboxes = screen.getAllByRole("checkbox", { name: /I completed this step/ });
     for (const checkbox of englishCheckboxes.slice(1)) await userEvent.click(checkbox);
 
     const finalOutcome = screen.getByRole("region", { name: "Checklist follow-up complete" });
@@ -875,6 +872,7 @@ describe("safe failure and secondary AI", () => {
     await userEvent.type(within(panel).getByRole("textbox"), "أرغب في فتح مطعم");
     await userEvent.click(within(panel).getByRole("button", { name: "فهم الوصف" }));
     expect(await within(panel).findByText(/المساعدة الذكية غير متاحة/)).toBeInTheDocument();
+    expect(within(panel).getByRole("textbox")).toHaveValue("أرغب في فتح مطعم");
     expect(await screen.findByText("مطعم")).toBeInTheDocument();
   });
 

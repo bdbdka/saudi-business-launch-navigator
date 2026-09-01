@@ -43,23 +43,20 @@ export function ResultSummary({
           : copy.results.introBody}
       </p>
 
-      <div className={`checklist-determination${unresolved ? " unresolved" : ""}`}>
-        {unresolved ? (
-          <>
-            <strong>{copy.results.checklistNeedsInformation}</strong>
-            <p>{interpolate(copy.results.checklistNeedsInformationTemplate, values)}</p>
-            <button className="button secondary small" type="button" onClick={onEdit}>
-              {copy.results.edit}
-            </button>
-          </>
-        ) : (
-          <p>
-            {isDemo
-              ? productCopy.resultDetermined
-              : copy.results.checklistDetermined}
-          </p>
-        )}
-      </div>
+      {unresolved && (
+        <div className="checklist-determination unresolved">
+          <strong>{copy.results.checklistNeedsInformation}</strong>
+          <p>{interpolate(copy.results.checklistNeedsInformationTemplate, values)}</p>
+          <button className="button secondary small" type="button" onClick={onEdit}>
+            {copy.results.edit}
+          </button>
+        </div>
+      )}
+      {!unresolved && !isDemo && (
+        <div className="checklist-determination">
+          <p>{copy.results.checklistDetermined}</p>
+        </div>
+      )}
 
       <div className="checklist-progress-summary">
         <h3>

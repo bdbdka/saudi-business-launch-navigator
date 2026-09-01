@@ -70,6 +70,15 @@ const forbiddenDemoText = [
   "القواعد النموذجية",
   "النتيجة الحتمية",
   "هذا مثال يوضح",
+  "لكل نشاط مدعوم",
+  "الرحلة النموذجية",
+  "ما هذه الخطوة؟",
+  "لماذا ظهرت؟",
+  "ماذا تفعل الآن؟",
+  "for every supported activity",
+  "starting point of the sample journey",
+  "why did it appear?",
+  "what should you do now?",
 ] as const;
 
 const contradictoryCurrentRecordClaims = [
@@ -83,6 +92,44 @@ const contradictoryCurrentRecordClaims = [
 
 test.describe.configure({ mode: "serial" });
 
+test("a transient readiness failure warms once and continues without a refresh", async ({
+  page,
+}) => {
+  test.setTimeout(90_000);
+  let readinessRequests = 0;
+  const activityMethods: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().endsWith("/api/v1/activities")) activityMethods.push(request.method());
+  });
+  await page.route("**/health/ready", async (route) => {
+    readinessRequests += 1;
+    if (readinessRequests === 1) {
+      const origin = route.request().headers().origin ?? "http://localhost:3000";
+      await route.fulfill({
+        status: 503,
+        contentType: "application/json",
+        headers: { "access-control-allow-origin": origin, vary: "Origin" },
+        body: JSON.stringify({ status: "starting" }),
+      });
+      return;
+    }
+    await route.continue();
+  });
+
+  await page.goto("/ar");
+  const warming = page.getByRole("status").filter({ hasText: "جاري تشغيل الخدمة" });
+  await expect(warming).toBeVisible();
+  await expect(warming).toContainText("سنكمل تلقائيًا عندما تصبح جاهزة");
+  await expect(page.getByRole("button", { name: "مقهى" })).toBeVisible({ timeout: 75_000 });
+  await expect(page.getByRole("button", { name: "مطعم" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "مطبخ سحابي" })).toBeVisible();
+  await expect(warming).toHaveCount(0);
+  await expect(page.locator(".workflow-error")).toHaveCount(0);
+  expect(readinessRequests).toBeGreaterThanOrEqual(2);
+  expect(readinessRequests).toBeLessThanOrEqual(3);
+  expect(activityMethods).toEqual(["GET"]);
+});
+
 test("Arabic demo flow uses the real API, preserves unknown, and supports re-entry", async ({
   page,
 }) => {
@@ -92,7 +139,7 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   await expect(page.locator("html")).toHaveAttribute("lang", "ar");
   await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
   await expect(page.getByText("نسخة تجريبية مستقلة وليست منصة حكومية.")).toBeVisible();
-  await expect(page.getByText(/لم تُراجع بقية مدن المملكة مراجعة كاملة بعد/)).toBeVisible();
+  await expect(page.getByText(/لم نراجع بعد المتطلبات المحلية لبقية مدن المملكة/)).toBeVisible();
   await expect(page.getByText(/كسياق تجريبي/)).toHaveCount(0);
   await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expectDemoDOMIntegrity(page);
@@ -109,8 +156,8 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   const firstHelp = page.getByRole("button", { name: "توضيح المقصود بالسؤال" });
   await firstHelp.click();
   await expect(page.getByText("ما المقصود؟", { exact: true })).toBeVisible();
-  await expect(page.getByText("لماذا نسألك؟", { exact: true })).toBeVisible();
-  await expect(page.getByText("مثال بسيط", { exact: true })).toBeVisible();
+  await expect(page.getByText("ليش نسألك؟", { exact: true })).toBeVisible();
+  await expect(page.getByText("مثال", { exact: true })).toBeVisible();
   await page.keyboard.press("Escape");
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
@@ -190,12 +237,12 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
     "ar",
     "https://services.balady.gov.sa/commercial/inquiry/ActivitiesInquiry/GetDetails?type=detailed&activityId=1319",
   );
-  const arabicCompletionBoxes = page.getByRole("checkbox", { name: "أنجزت هذا" });
+  const arabicCompletionBoxes = page.getByRole("checkbox", { name: "أنجزت هذه الخطوة" });
   await expect(arabicCompletionBoxes).toHaveCount(6);
   for (let index = 0; index < 6; index += 1) {
     await arabicCompletionBoxes.nth(index).check();
   }
-  await expect(page.getByRole("heading", { name: "أنهيت متابعة خطوات القائمة" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "حددت جميع خطوات القائمة كمنجزة" })).toBeVisible();
   await expect(page.getByRole("heading", { name: "راجع هذه الأمور" })).toBeVisible();
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
@@ -211,7 +258,7 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expect(page.locator("html")).toHaveAttribute("lang", "en");
   await expect(page.locator("html")).toHaveAttribute("dir", "ltr");
   await expect(page.getByText("Independent portfolio demo. Not a government service.")).toBeVisible();
-  await expect(page.getByText(/Other Saudi cities have not yet been fully reviewed/)).toBeVisible();
+  await expect(page.getByText(/Local requirements in other Saudi cities have not yet been fully reviewed/)).toBeVisible();
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
@@ -267,7 +314,7 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expect(page.getByTestId("demo-result-scope-note")).toHaveCount(1);
   await expect(page.locator('a[href*=".invalid"]')).toHaveCount(0);
   await expect(page.getByText(/non-government sample route/i)).toHaveCount(0);
-  const englishCompletionBoxes = page.getByRole("checkbox", { name: "I've completed this" });
+  const englishCompletionBoxes = page.getByRole("checkbox", { name: "I completed this step" });
   await expect(englishCompletionBoxes).toHaveCount(5);
   for (let index = 0; index < 5; index += 1) {
     await englishCompletionBoxes.nth(index).check();
@@ -293,7 +340,7 @@ test("About and mobile views keep the full bilingual demo boundary without a ban
   await expect(page.getByTestId("portfolio-demo-notice")).toHaveCount(0);
   await expect(page.getByRole("heading", { name: "حول دليل تأسيس المنشآت" })).toBeVisible();
   await expect(page.getByText(/هذا مشروع مستقل غير تابع لأي جهة حكومية/)).toBeVisible();
-  await expect(page.getByText(/لم تُراجع بقية مدن المملكة مراجعة كاملة بعد/)).toBeVisible();
+  await expect(page.getByText(/لم نراجع المتطلبات المحلية لبقية مدن المملكة/)).toBeVisible();
   await expect(page.getByRole("heading", { name: "كيف يمكن أن يتطور الدليل؟" })).toBeVisible();
   await expect(page.getByText(/هذه رؤية مستقبلية وليست ميزات متاحة الآن/)).toBeVisible();
   await expectNoHorizontalOverflow(page);
@@ -535,8 +582,8 @@ async function expectActivityReference(
   ).toBeVisible();
   await expect(reference).toContainText(
     locale === "ar"
-      ? "يمكنك مراجعة صفحة النشاط الرسمية في منصة بلدي للاطلاع على وصف النشاط والمتطلبات المنشورة للنشاط."
-      : "You can review the official Balady activity page for the activity description and published activity requirements.",
+      ? "يمكنك مراجعة صفحة النشاط الرسمية في منصة بلدي للاطلاع على وصف النشاط وتفاصيله المنشورة."
+      : "You can review the official Balady activity page for its published activity description and details.",
   );
   await expect(reference).toContainText(
     locale === "ar"

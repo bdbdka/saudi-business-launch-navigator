@@ -17,7 +17,7 @@ describe("locale dictionaries", () => {
       "أمور تراجعها رسميًا",
     ]);
     expect(copy.workflow.landingChecklist).toBe("احصل على قائمة واضحة بالمتطلبات والخطوات");
-    expect(copy.activities.title).toBe("اختر النشاط الأقرب لمشروعك");
+    expect(copy.activities.title).toBe("ما نشاط مشروعك؟");
     expect(copy.activities.start).toBe("ابدأ الأسئلة");
     expect(copy.activities.descriptions.cloud_kitchen).toContain("من دون صالة جلوس");
     expect(copy.questionnaire.evaluate).toBe("عرض النتيجة");
@@ -27,7 +27,7 @@ describe("locale dictionaries", () => {
       copy.questionnaire.meaningLabel,
       copy.questionnaire.whyLabel,
       copy.questionnaire.exampleLabel,
-    ]).toEqual(["ما المقصود؟", "لماذا نسألك؟", "مثال بسيط"]);
+    ]).toEqual(["ما المقصود؟", "ليش نسألك؟", "مثال"]);
     expect(copy.results.missing).toBe("نحتاج منك معلومة");
     expect(copy.results.required).toBe("ابدأ بهذه الخطوات");
     expect(copy.results.notRequired).toBe("خطوات لا تنطبق على إجاباتك الحالية");
@@ -43,11 +43,11 @@ describe("locale dictionaries", () => {
     expect(copy.about.futureIntro).toContain("رؤية مستقبلية وليست ميزات متاحة الآن");
     expect(copy.about.sourcesPrinciple).toContain("لا تعتمد على بيانات نسخة العرض");
     expect(copy.landingDisclaimer).toBe("نسخة تجريبية مستقلة وليست منصة حكومية.");
-    expect(copy.landingCoverage).toContain("في الرياض وجدة");
-    expect(copy.landingCoverage).toContain("لم تُراجع بقية مدن المملكة مراجعة كاملة بعد");
-    expect(copy.landingCoverage).toContain("لا يعني أن قواعدها مختلفة");
-    expect(copy.landingCoverage).toContain("تطابقها على مستوى المملكة قد تم التحقق منه");
-    expect(copy.landingCoverage).toContain("المصادر الحكومية الرسمية والتحقق منها");
+    expect(copy.landingCoverage).toContain("في جدة والرياض فقط");
+    expect(copy.landingCoverage).toContain("لم نراجع بعد المتطلبات المحلية لبقية مدن المملكة");
+    expect(copy.landingCoverage).toContain("لا نفترض أن النتائج تنطبق عليها تلقائيًا");
+    expect(copy.landingCoverage).toContain("فروقات محلية");
+    expect(copy.landingCoverage).toContain("التحقق من مصدر رسمي");
     expect(copy.landingCoverage).not.toContain("كسياق تجريبي");
     expect(copy.footer.disclaimer).toBe(
       "يعتمد الدليل على بيانات نموذجية في النسخة التجريبية، ولا يمثل جهة حكومية.",
@@ -70,7 +70,7 @@ describe("locale dictionaries", () => {
       "Information we need from you",
       "Things to review officially",
     ]);
-    expect(copy.activities.title).toBe("Choose the activity closest to your business");
+    expect(copy.activities.title).toBe("What is your business activity?");
     expect(copy.activities.start).toBe("Start questions");
     expect(copy.activities.descriptions.cloud_kitchen).toContain("without a customer dining room");
     expect(copy.questionnaire.evaluate).toBe("Show results");
@@ -92,11 +92,10 @@ describe("locale dictionaries", () => {
     expect(copy.about.futureIntro).toContain("future vision, not a list of features available today");
     expect(copy.about.sourcesPrinciple).toContain("do not rely on the demo dataset");
     expect(copy.landingDisclaimer).toBe("Independent portfolio demo. Not a government service.");
-    expect(copy.landingCoverage).toContain("in Riyadh and Jeddah");
-    expect(copy.landingCoverage).toContain("Other Saudi cities have not yet been fully reviewed");
-    expect(copy.landingCoverage).toContain("neither assumes their rules differ");
-    expect(copy.landingCoverage).toContain("nationwide equivalence has been verified");
-    expect(copy.landingCoverage).toContain("official-source research and verification");
+    expect(copy.landingCoverage).toContain("in Jeddah and Riyadh only");
+    expect(copy.landingCoverage).toContain("Local requirements in other Saudi cities have not yet been fully reviewed");
+    expect(copy.landingCoverage).toContain("results are not assumed to apply there automatically");
+    expect(copy.landingCoverage).toContain("official-source verification");
     expect(copy.footer.disclaimer).toBe(
       "This demo uses sample data and is not a government service.",
     );

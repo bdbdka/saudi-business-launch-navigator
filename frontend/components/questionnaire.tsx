@@ -210,7 +210,7 @@ function AnswerButton({
 }) {
   return (
     <button className={`answer-button${selected ? " selected" : ""}`} type="button" aria-pressed={selected} onClick={onClick}>
-      <strong>{label}</strong>
+      <span>{label}</span>
       {selected && <span className="answer-selected-mark" aria-hidden="true">✓</span>}
     </button>
   );

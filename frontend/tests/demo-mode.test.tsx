@@ -199,8 +199,8 @@ describe("portfolio demo presentation boundary", () => {
       name: "أنجزت الخطوات الظاهرة، وما زلنا نحتاج معلومات",
     })).toBeInTheDocument();
     expect(screen.getByText(/خطوات لم تظهر وفق إجاباتك/)).toBeInTheDocument();
-    expect(screen.getByText("لا توجد خطوة ظاهرة ضمن هذا السيناريو.")).toBeInTheDocument();
-    expect(screen.getByText(/نحتاج إجابتك عن/)).toBeInTheDocument();
+    expect(screen.getByText("لا توجد خطوات ظاهرة بناءً على إجاباتك الحالية.")).toBeInTheDocument();
+    expect(screen.getByText(/لم نتمكن من تحديد هذه الخطوة/)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "العودة إلى هذا السؤال" })).toBeInTheDocument();
     expect(screen.queryByText(/المتطلبات الحالية/)).not.toBeInTheDocument();
   });
@@ -227,10 +227,10 @@ describe("portfolio demo presentation boundary", () => {
     );
 
     expect(screen.getByRole("region", {
-      name: "No steps are shown in this scenario",
+      name: "No steps are shown for your current answers",
     })).toBeInTheDocument();
     expect(screen.getByText("We do not need another answer to select the steps right now.")).toBeInTheDocument();
-    expect(screen.getByText("There are no additional review topics in this scenario.")).toBeInTheDocument();
+    expect(screen.getByText("There are no additional review topics right now.")).toBeInTheDocument();
     expect(screen.getByText(/Steps not shown for your answers/)).toBeInTheDocument();
     expect(screen.queryByText(/applicable requirements/i)).not.toBeInTheDocument();
   });
@@ -264,12 +264,16 @@ describe("portfolio demo presentation boundary", () => {
       </CatalogPresentationProvider>,
     );
 
-    expect(screen.getByRole("heading", { name: "Organize your business-start path" })).toBeInTheDocument();
-    expect(screen.getByText(/starting point of the sample journey/)).toBeInTheDocument();
-    expect(screen.getByText(/use the official activity reference below/)).toBeInTheDocument();
-    expect(screen.getByText(/What is this step?/)).toBeInTheDocument();
-    expect(screen.getByText(/Why did it appear?/)).toBeInTheDocument();
-    expect(screen.getByText(/What should you do now?/)).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Organize your key business decisions" })).toBeInTheDocument();
+    expect(screen.getByText(/separate what is already clear/)).toBeInTheDocument();
+    expect(screen.getByText(/check each one through an official source/)).toBeInTheDocument();
+    const applicableCard = screen.getByRole("heading", {
+      name: "Organize your key business decisions",
+    }).closest("article")!;
+    expect(within(applicableCard).getByText("Why it matters")).toBeInTheDocument();
+    expect(within(applicableCard).getByText("Your next step")).toBeInTheDocument();
+    expect(screen.queryByText(/starting point of the sample journey/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Why did it appear?/)).not.toBeInTheDocument();
     expect(screen.queryByText(/This example demonstrates/)).not.toBeInTheDocument();
     expect(screen.queryByText(/This requirement is unconditional/i)).not.toBeInTheDocument();
   });
@@ -309,27 +313,27 @@ describe("portfolio demo presentation boundary", () => {
     const applies = screen.getByRole("heading", { name: "Start with these steps" }).closest("section")!;
     const cardTitles = within(applies).getAllByRole("heading", { level: 4 }).map((heading) => heading.textContent);
     expect(cardTitles).toEqual([
-      "Organize your business-start path",
+      "Organize your key business decisions",
       "Organize your staffing plan",
       "Prepare information about on-site workers",
       "Organize your delivery plan",
       "Review your planned sidewalk use",
       "Record your VAT-route review outcome",
     ]);
-    expect(within(applies).getAllByText("What is this step?")).toHaveLength(6);
-    expect(within(applies).getAllByText("Why did it appear?")).toHaveLength(6);
-    expect(within(applies).getAllByText("What should you do now?")).toHaveLength(6);
+    expect(within(applies).getAllByText("Why it matters")).toHaveLength(6);
+    expect(within(applies).getAllByText("Your next step")).toHaveLength(6);
+    expect(within(applies).queryByText("Why did it appear?")).not.toBeInTheDocument();
 
     const review = screen.getByRole("heading", { name: "Review these topics" }).closest("section")!;
-    expect(within(review).getAllByText("What does this mean?")).toHaveLength(6);
-    expect(within(review).getAllByText("Why does this matter for your project?")).toHaveLength(6);
-    expect(within(review).getAllByText("What should you review?")).toHaveLength(6);
-    expect(within(review).getByText(/does not decide investment eligibility/)).toBeInTheDocument();
-    expect(within(review).getByText(/does not choose the best legal form/)).toBeInTheDocument();
-    expect(within(review).getByText(/without asking for your address/)).toBeInTheDocument();
-    expect(within(review).getByText(/does not calculate revenue/)).toBeInTheDocument();
-    expect(within(review).getByText(/not a decision that it applies/)).toBeInTheDocument();
-    expect(within(review).getByText(/does not calculate an obligation/)).toBeInTheDocument();
+    expect(within(review).getAllByText("What it means")).toHaveLength(6);
+    expect(within(review).getAllByText("Why it matters")).toHaveLength(6);
+    expect(within(review).getAllByText("What to review")).toHaveLength(6);
+    expect(within(review).getByText(/ownership type may affect the route/)).toBeInTheDocument();
+    expect(within(review).getByText(/legal form affects the registration route/)).toBeInTheDocument();
+    expect(within(review).getByText(/Committing to premises before verification/)).toBeInTheDocument();
+    expect(within(review).getByText(/review outcome may change when your business information changes/)).toBeInTheDocument();
+    expect(within(review).getByText(/choose and prepare your invoicing approach/)).toBeInTheDocument();
+    expect(within(review).getByText(/clarifies what needs follow-up before you rely/)).toBeInTheDocument();
     expect(screen.queryByText(/This example demonstrates how the guide presents/)).not.toBeInTheDocument();
 
     const summary = document.querySelector(".result-introduction")!;
