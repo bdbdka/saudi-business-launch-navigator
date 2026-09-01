@@ -61,14 +61,19 @@ Compose network, services connect to PostgreSQL through the exact service name
 2. the FastAPI Docker service with `/health/ready`; and
 3. the Next.js Docker service with `/ar` as its health path.
 
-Before a manual deployment:
+The blueprint dynamically wires `SBLN_CORS_ALLOWED_ORIGINS` from the frontend
+service's generated external URL, `SBLN_ALLOWED_HOSTS` from the API service's
+generated external hostname, and `NEXT_PUBLIC_API_BASE_URL` from the API
+service's generated external URL. This preserves exact-origin and exact-host
+allowlists without requiring guessed values before the first deployment.
 
-1. set `SBLN_CORS_ALLOWED_ORIGINS` to the exact frontend HTTPS origin;
-2. set `SBLN_ALLOWED_HOSTS` to the exact API hostname;
-3. set `NEXT_PUBLIC_API_BASE_URL` to the exact API HTTPS origin;
-4. verify both services select `PORTFOLIO_DEMO_CATALOG`;
-5. keep generated database credentials in the platform secret manager; and
-6. confirm `/health/live`, `/health/ready`, `/ar`, and `/en` after deployment.
+Before approving a deployment:
+
+1. verify both services select `PORTFOLIO_DEMO_CATALOG`;
+2. keep generated database credentials in the platform secret manager;
+3. verify the three service references resolve to the intended HTTPS origins
+   and API hostname; and
+4. confirm `/health/live`, `/health/ready`, `/ar`, and `/en` after deployment.
 
 Automatic deploys are disabled in the blueprint. Plan names and availability
 should be reviewed against Render's current offerings before use.

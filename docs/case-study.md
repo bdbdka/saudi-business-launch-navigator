@@ -85,8 +85,8 @@ the selected activity.
 The final release validation on 2026-09-01 included:
 
 - 64 backend tests against disposable PostgreSQL 18;
-- 85 frontend tests, with 3 environment-gated tests skipped;
-- 4 real-browser Playwright scenarios against the full local stack;
+- 89 frontend tests, with 3 environment-gated tests skipped;
+- 5 real-browser Playwright scenarios against the full local stack;
 - external Chrome checks against the deployed Arabic, English, About, mobile,
   questionnaire, result, link, and AI-unavailable paths;
 - Ruff, formatting, mypy, ESLint, TypeScript, and production builds;
