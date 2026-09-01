@@ -153,21 +153,58 @@ test("Arabic demo flow uses the real API, preserves unknown, and supports re-ent
   const progress = page.getByRole("progressbar", { name: "تقدم الأسئلة" });
   await expect(progress).toHaveAttribute("aria-valuemax", "8");
   await expect(page.getByText("السؤال ١ من ٨", { exact: true })).toBeVisible();
+  await expectNoQuestionWrapperHighlight(page);
   const firstHelp = page.getByRole("button", { name: "توضيح المقصود بالسؤال" });
+  const actionsTopBeforeHelp = await page.locator(".question-actions").evaluate(
+    (element) => element.getBoundingClientRect().top,
+  );
   await page.locator(".question-title-text").hover();
   await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await expectNoQuestionWrapperHighlight(page);
   await firstHelp.hover();
   await expect(page.locator(".question-tooltip")).toBeVisible();
+  await expectNoQuestionWrapperHighlight(page);
+  const actionsTopWithHelp = await page.locator(".question-actions").evaluate(
+    (element) => element.getBoundingClientRect().top,
+  );
+  expect(Math.abs(actionsTopWithHelp - actionsTopBeforeHelp)).toBeLessThanOrEqual(1);
   await page.locator(".progress-row").hover();
   await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await expectNoQuestionWrapperHighlight(page);
   await firstHelp.focus();
   await expect(page.getByText("ما المقصود؟", { exact: true })).toBeVisible();
   await expect(page.getByText("ليش نسألك؟", { exact: true })).toBeVisible();
   await expect(page.getByText("مثال", { exact: true })).toBeVisible();
+  await page.keyboard.press("Tab");
+  await page.keyboard.press("Shift+Tab");
+  await expect(firstHelp).toBeFocused();
+  const helpFocusStyle = await firstHelp.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return { outlineStyle: style.outlineStyle, outlineWidth: style.outlineWidth };
+  });
+  expect(helpFocusStyle.outlineStyle).toBe("solid");
+  expect(Number.parseFloat(helpFocusStyle.outlineWidth)).toBeGreaterThanOrEqual(3);
+  await expectNoQuestionWrapperHighlight(page);
   await page.keyboard.press("Escape");
+  await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await expectNoQuestionWrapperHighlight(page);
+
+  await page.locator(".answer-button").first().click();
+  await expectNoQuestionWrapperHighlight(page);
+  await firstHelp.click();
+  await expect(page.locator(".question-tooltip")).toBeVisible();
+  await expectNoQuestionWrapperHighlight(page);
+  await page.locator(".answer-button").nth(1).click();
+  await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await expectNoQuestionWrapperHighlight(page);
+
+  await firstHelp.focus();
   await firstHelp.press("Enter");
   await expect(page.locator(".question-tooltip")).toBeVisible();
+  await expectNoQuestionWrapperHighlight(page);
   await page.keyboard.press("Escape");
+  await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await expectNoQuestionWrapperHighlight(page);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
@@ -297,11 +334,20 @@ test("English guided flow and AI-unavailable fallback work without an OpenAI key
   await expect(page.getByText(/If you do not know an answer, do not guess/i)).toBeVisible();
   const progress = page.getByRole("progressbar", { name: "Question progress" });
   await expect(progress).toHaveAttribute("aria-valuemax", "7");
+  await expectNoQuestionWrapperHighlight(page);
+  const englishHelp = page.getByRole("button", { name: "Explain this question" });
+  await englishHelp.click();
+  await expect(page.locator(".question-tooltip")).toBeVisible();
+  await expectNoQuestionWrapperHighlight(page);
+  await page.keyboard.press("Escape");
+  await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await expectNoQuestionWrapperHighlight(page);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
   for (let question = 1; question <= 7; question += 1) {
     await expect(progress).toHaveAttribute("aria-valuenow", String(question));
     await page.locator(".answer-button").first().click();
+    await expectNoQuestionWrapperHighlight(page);
     if (question < 7) {
       await page.getByRole("button", { name: "Next", exact: true }).click();
     }
@@ -381,11 +427,14 @@ test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", 
   await startActivity(page, "مقهى", "ابدأ الأسئلة");
   const progress = page.getByRole("progressbar", { name: "تقدم الأسئلة" });
   await expect(progress).toHaveAttribute("aria-valuemax", "7");
+  await expectNoQuestionWrapperHighlight(page);
   await page.getByRole("button", { name: "توضيح المقصود بالسؤال" }).click();
   await expect(page.getByText("ما المقصود؟", { exact: true })).toBeVisible();
+  await expectNoQuestionWrapperHighlight(page);
   await expectNoHorizontalOverflow(page);
   await page.locator(".progress-row").click();
   await expect(page.locator(".question-tooltip")).toHaveCount(0);
+  await expectNoQuestionWrapperHighlight(page);
   await expectDemoDOMIntegrity(page);
   await auditRenderedLinks(page);
 
@@ -399,6 +448,7 @@ test("Arabic coffee-shop workflow remains usable throughout a mobile viewport", 
     } else {
       await answerButtons.first().click();
     }
+    await expectNoQuestionWrapperHighlight(page);
     if (question < 7) {
       await page.getByRole("button", { name: "التالي", exact: true }).click();
     }
@@ -506,6 +556,33 @@ async function chooseAndVerifyCompactOption(page: Page, verifyHover: boolean): P
   const selectedBackground = await first.evaluate((element) => getComputedStyle(element).backgroundColor);
   expect(selectedBackground).not.toBe("rgb(11, 90, 71)");
   expect(selectedBackground).not.toBe("rgb(7, 69, 54)");
+}
+
+async function expectNoQuestionWrapperHighlight(page: Page): Promise<void> {
+  const violations = await page.locator(
+    ".question-card, .question-card fieldset, .question-card legend, .question-help, .question-legend-row",
+  ).evaluateAll((elements) => elements.flatMap((element) => {
+    const style = getComputedStyle(element);
+    const hasOutline = style.outlineStyle !== "none"
+      && Number.parseFloat(style.outlineWidth) > 0;
+    const hasBorder = [
+      style.borderTopWidth,
+      style.borderRightWidth,
+      style.borderBottomWidth,
+      style.borderLeftWidth,
+    ].some((width) => Number.parseFloat(width) > 0);
+    const hasShadow = style.boxShadow !== "none";
+    return hasOutline || hasBorder || hasShadow
+      ? [{
+          className: element.className,
+          tagName: element.tagName,
+          outline: `${style.outlineStyle} ${style.outlineWidth} ${style.outlineColor}`,
+          border: style.border,
+          boxShadow: style.boxShadow,
+        }]
+      : [];
+  }));
+  expect(violations).toEqual([]);
 }
 
 async function expectResultsOrder(page: Page): Promise<void> {
